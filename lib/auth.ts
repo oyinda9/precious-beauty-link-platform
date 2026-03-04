@@ -8,6 +8,7 @@ const COOKIE_NAME = "auth_token";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
 export interface JWTPayload {
+  fullName: any;
   userId: string;
   email: string;
   role: UserRole;
@@ -75,3 +76,29 @@ export async function getCurrentUser(): Promise<JWTPayload | null> {
   if (!token) return null;
   return verifyToken(token);
 }
+
+// Role checking helpers
+export function isSuperAdmin(role: UserRole): boolean {
+  return role === UserRole.SUPER_ADMIN;
+}
+
+export function isSalonAdmin(role: UserRole): boolean {
+  return role === UserRole.SALON_ADMIN;
+}
+
+export function isSalonStaff(role: UserRole): boolean {
+  return role === UserRole.SALON_STAFF;
+}
+
+export function isClient(role: UserRole): boolean {
+  return role === UserRole.CLIENT;
+}
+
+// Token extraction from Authorization header
+export function extractToken(authHeader: string | null): string | null {
+  if (!authHeader) return null;
+  const parts = authHeader.split(" ");
+  if (parts.length !== 2 || parts[0] !== "Bearer") return null;
+  return parts[1];
+}
+

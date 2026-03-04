@@ -10,10 +10,10 @@ export default function DashboardLayout({
 }) {
 
   const navItems = [
-    { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
-    { href: '/dashboard/salons', label: 'Salons', icon: Building2 },
-    { href: '/dashboard/users', label: 'Users', icon: Users },
-    { href: '/dashboard/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/dashboard', label: 'Overview', icon: <LayoutDashboard size={20} /> },
+    { href: '/dashboard/salons', label: 'Salons', icon: <Building2 size={20} /> },
+    { href: '/dashboard/users', label: 'Users', icon: <Users size={20} /> },
+    { href: '/dashboard/analytics', label: 'Analytics', icon: <BarChart3 size={20} /> },
   ];
 
   return (

@@ -1,75 +1,85 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { AlertCircle } from 'lucide-react';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { AlertCircle } from "lucide-react";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    password: '',
-    phone: '',
-    role: 'CLIENT',
-    licenseNumber: '',
+    fullName: "",
+    email: "",
+    password: "",
+    phone: "",
+    role: "CLIENT",
+    licenseNumber: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    setError('');
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError("");
   };
 
   const handleRoleChange = (value: string) => {
-    setFormData(prev => ({ ...prev, role: value }));
+    if (value === "SALON_OWNER") {
+      // Redirect to salon owner registration page
+      router.push("/register-salon-owner");
+      return;
+    }
+    setFormData((prev) => ({ ...prev, role: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
       });
 
       if (!res.ok) {
         const data = await res.json();
-        setError(data.error || 'Registration failed');
+        setError(data.error || "Registration failed");
         return;
       }
 
       const data = await res.json();
 
       // Redirect based on user role
-      if (data.user.role === 'ADMIN') {
-        router.push('/dashboard');
-      } else if (data.user.role === 'SALON_OWNER') {
-        router.push('/owner/dashboard');
+      if (data.user.role === "SUPER_ADMIN") {
+        router.push("/admin/dashboard");
       } else {
-        router.push('/client/bookings');
+        // For CLIENT role
+        router.push("/login?redirect=/bookings");
       }
     } catch (error) {
-      setError('An error occurred. Please try again.');
-      console.error('Registration error:', error);
+      setError("An error occurred. Please try again.");
+      console.error("Registration error:", error);
     } finally {
       setLoading(false);
     }
@@ -159,7 +169,7 @@ export default function RegisterPage() {
               </Select>
             </div>
 
-            {formData.role === 'SALON_OWNER' && (
+            {formData.role === "SALON_OWNER" && (
               <div className="space-y-2">
                 <Label htmlFor="licenseNumber">License Number</Label>
                 <Input
@@ -172,17 +182,13 @@ export default function RegisterPage() {
               </div>
             )}
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? 'Creating account...' : 'Create Account'}
+            <Button type="submit" className="w-full" disabled={false}>
+              {loading ? "Creating account..." : "Create Account"}
             </Button>
           </form>
 
           <p className="text-sm text-muted-foreground text-center mt-4">
-            Already have an account?{' '}
+            Already have an account?{" "}
             <Link href="/login" className="text-primary hover:underline">
               Sign in
             </Link>

@@ -89,9 +89,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const slug = name.toLowerCase().replace(/\s+/g, "-");
+
     const salon = await prisma.salon.create({
       data: {
         name,
+        slug,
         description: description || null,
         address,
         city,
@@ -99,7 +102,7 @@ export async function POST(request: NextRequest) {
         email,
         latitude: latitude || null,
         longitude: longitude || null,
-        adminId: currentUser.role === UserRole.ADMIN ? currentUser.userId : null,
+        id: currentUser.role === UserRole.SUPER_ADMIN ? currentUser.userId : undefined,
       },
     });
 
