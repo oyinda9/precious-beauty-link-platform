@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// User model - supports multiple roles
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String   // hashed with bcryptjs
+  fullName  String
+  phone     String?
+  role      UserRole @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  admin          Admin?
+  salonOwner     SalonOwner?
+  client         Client?
+  bookings       Booking[]
+  reviews        Review[]
+  sentMessages   Message[] @relation("sender")
+  receivedMessages Message[] @relation("receiver")
+
+  @@index([email])
+  @@index([role])
+}
+
+enum UserRole {
+  ADMIN
+  SALON_OWNER
+  CLIENT
+}
+
+// Admin model
+model Admin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  // Admin can manage salons
+  salons Salon[]
+}
+
+// Salon Owner model
+model SalonOwner {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  licenseNumber String
+  createdAt DateTime @default(now())
+
+  // Relations
+  salons Salon[]
+}
+
+// Salon model
+model Salon {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  address      String
+  city         String
+  phone        String
+  email        String
+  latitude     Float?
+  longitude    Float?
+  rating       Float   @default(0)
+  reviewCount  Int     @default(0)
+  isActive     Boolean @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  adminId      String?
+  admin        Admin?   @relation(fields: [adminId], references: [id])
+  ownerIds     String[]
+  owners       SalonOwner[]
+  services     Service[]
+  bookings     Booking[]
+  timeSlots    TimeSlot[]
+  reviews      Review[]
+  messages     Message[]
+
+  @@index([city])
+  @@index([isActive])
+}
+
+// Service model
+model Service {
+  id          String   @id @default(cuid())
+  salonId     String
+  salon       Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  duration    Int      // in minutes
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bookings    Booking[]
+
+  @@index([salonId])
+}
+
+// Booking model
+model Booking {
+  id              String   @id @default(cuid())
+  clientId        String
+  client          User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  salonId         String
+  salon           Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  serviceId       String
+  service         Service  @relation(fields: [serviceId], references: [id])
+  bookingDate     DateTime
+  startTime       String   // HH:mm format
+  endTime         String   // HH:mm format
+  status          BookingStatus @default(PENDING)
+  notes           String?
+  totalPrice      Float
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  review          Review?
+
+  @@index([clientId])
+  @@index([salonId])
+  @@index([status])
+  @@index([bookingDate])
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+// Review model
+model Review {
+  id          String   @id @default(cuid())
+  salonId     String
+  salon       Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  clientId    String
+  user        User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  bookingId   String   @unique
+  booking     Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  rating      Int      // 1-5
+  comment     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([salonId])
+  @@index([clientId])
+}
+
+// TimeSlot model - for managing available time slots
+model TimeSlot {
+  id        String   @id @default(cuid())
+  salonId   String
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  dayOfWeek Int      // 0-6 (Monday-Sunday)
+  startTime String   // HH:mm format
+  endTime   String   // HH:mm format
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([salonId])
+}
+
+// Message model - for messaging between clients and salon owners
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  sender     User     @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User     @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  salonId    String?
+  salon      Salon?   @relation(fields: [salonId], references: [id], onDelete: SetNull)
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([salonId])
+}
+
+// Client model - for additional client information
+model Client {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferredSalons String[] // Array of salon IDs
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
