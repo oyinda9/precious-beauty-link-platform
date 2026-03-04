@@ -9,10 +9,7 @@ export async function GET(request: NextRequest) {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -24,10 +21,14 @@ export async function GET(request: NextRequest) {
     // Filter based on user role
     if (currentUser.role === UserRole.CLIENT) {
       where.clientId = currentUser.userId;
-    } else if (currentUser.role === UserRole.SALON_OWNER) {
-      where.salon = {
-        adminId: currentUser.userId,
-      };
+    } else if (currentUser.role === UserRole.SALON_ADMIN) {
+      // Get salon IDs for this admin
+      const salonAdmins = await prisma.salonAdmin.findMany({
+        where: { userId: currentUser.userId },
+        select: { salonId: true },
+      });
+      const salonIds = salonAdmins.map((sa) => sa.salonId);
+      where.salonId = { in: salonIds };
     }
 
     if (status) {
@@ -54,15 +55,12 @@ export async function GET(request: NextRequest) {
       orderBy: { bookingDate: "desc" },
     });
 
-    return NextResponse.json(
-      { bookings },
-      { status: 200 }
-    );
+    return NextResponse.json({ bookings }, { status: 200 });
   } catch (error) {
     console.error("[Bookings GET Error]", error);
     return NextResponse.json(
       { error: "Failed to fetch bookings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -70,29 +68,29 @@ export async function GET(request: NextRequest) {
 // POST - Create a new booking
 export async function POST(request: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
-
-    if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
-
-    if (currentUser.role !== UserRole.CLIENT) {
-      return NextResponse.json(
-        { error: "Only clients can create bookings" },
-        { status: 403 }
-      );
-    }
+    // Allow anonymous bookings (no auth required)
+    // If user is logged in and is a client, use their ID; otherwise, booking is anonymous
+    let currentUser = null;
+    try {
+      currentUser = await getCurrentUser();
+    } catch {}
 
     const body = await request.json();
-    const { salonId, serviceId, bookingDate, startTime, notes } = body;
+    const {
+      salonId,
+      serviceId,
+      bookingDate,
+      startTime,
+      notes,
+      clientName,
+      clientEmail,
+      clientPhone,
+    } = body;
 
     if (!salonId || !serviceId || !bookingDate || !startTime) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,16 +100,15 @@ export async function POST(request: NextRequest) {
     });
 
     if (!service) {
-      return NextResponse.json(
-        { error: "Service not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Service not found" }, { status: 404 });
     }
 
     // Calculate end time
     const [startHour, startMinute] = startTime.split(":").map(Number);
     const endDate = new Date(bookingDate);
-    endDate.setHours(startHour + Math.floor((startMinute + service.duration) / 60));
+    endDate.setHours(
+      startHour + Math.floor((startMinute + service.duration) / 60),
+    );
     endDate.setMinutes((startMinute + service.duration) % 60);
 
     const endTime = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
@@ -142,21 +139,32 @@ export async function POST(request: NextRequest) {
     if (existingBooking) {
       return NextResponse.json(
         { error: "Time slot already booked" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
+    // If user is logged in and is a client, use their ID; otherwise, create a guest booking (clientId: undefined)
+    const guestInfo =
+      clientName || clientEmail || clientPhone
+        ? `Guest: ${clientName || ""} | Email: ${clientEmail || ""} | Phone: ${clientPhone || ""}`
+        : null;
+
+    const bookingData: any = {
+      salonId,
+      serviceId,
+      bookingDate: new Date(bookingDate),
+      startTime,
+      endTime,
+      totalPrice: service.price,
+      notes: notes ? `${notes}\n${guestInfo}` : guestInfo,
+    };
+
+    if (currentUser && currentUser.role === UserRole.CLIENT) {
+      bookingData.clientId = currentUser.userId;
+    }
+
     const booking = await prisma.booking.create({
-      data: {
-        clientId: currentUser.userId,
-        salonId,
-        serviceId,
-        bookingDate: new Date(bookingDate),
-        startTime,
-        endTime,
-        totalPrice: service.price,
-        notes: notes || null,
-      },
+      data: bookingData,
       include: {
         client: true,
         service: true,
@@ -164,18 +172,22 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Format totalPrice as Naira in the response
+    const bookingWithNaira = {
+      ...booking,
+      totalPriceNaira: `₦${Number(booking.totalPrice).toLocaleString()}`,
+    };
     return NextResponse.json(
       {
         message: "Booking created successfully",
-        booking,
+        booking: bookingWithNaira,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("[Bookings POST Error]", error);
-    return NextResponse.json(
-      { error: "Failed to create booking" },
-      { status: 500 }
-    );
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to create booking";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

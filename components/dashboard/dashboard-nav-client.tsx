@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 export interface NavItem {
   href: string;
   label: string;
-  icon: React.ComponentType<{ size: number; className?: string }>;
+  icon: React.ReactNode;
 }
 
 export function DashboardNavClient({ navItems }: { navItems: NavItem[] }) {
@@ -99,14 +99,15 @@ export function DashboardNavClient({ navItems }: { navItems: NavItem[] }) {
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {navItems.map((item) => {
-          const Icon = item.icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-muted transition-colors"
             >
-              <Icon size={20} className="text-muted-foreground" />
+              <div className="text-muted-foreground">
+                {item.icon}
+              </div>
               {sidebarOpen && <span>{item.label}</span>}
             </Link>
           );
