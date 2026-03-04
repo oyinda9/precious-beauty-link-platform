@@ -10,7 +10,9 @@
     "db:init": "node scripts/initialize-db.js",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "migrate:dev": "pnpm exec prisma migrate dev --schema=prisma/schema.prisma",
+    "migrate:prod": "pnpm exec prisma migrate deploy --schema=prisma/schema.prisma"
   },
   "postinstall": "node ./scripts/prisma-generate-retry.js",
   "prisma": {
