@@ -46,9 +46,6 @@ model Admin {
   userId    String   @unique
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-
-  // Admin can manage salons
-  salons Salon[]
 }
 
 // Salon Owner model
@@ -60,7 +57,7 @@ model SalonOwner {
   createdAt DateTime @default(now())
 
   // Relations
-  salons Salon[]
+  salons    Salon[]
 }
 
 // Salon model
@@ -81,10 +78,8 @@ model Salon {
   updatedAt    DateTime @updatedAt
 
   // Relations
-  adminId      String?
-  admin        Admin?   @relation(fields: [adminId], references: [id])
-  ownerIds     String[]
-  owners       SalonOwner[]
+  ownerId      String?
+  owner        SalonOwner?  @relation(fields: [ownerId], references: [id])
   services     Service[]
   bookings     Booking[]
   timeSlots    TimeSlot[]
@@ -93,6 +88,7 @@ model Salon {
 
   @@index([city])
   @@index([isActive])
+  @@index([ownerId])
 }
 
 // Service model

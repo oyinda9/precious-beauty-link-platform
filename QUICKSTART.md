@@ -2,30 +2,43 @@
 
 Get SalonBook running locally in 5 minutes.
 
+**Getting "Fatal error during initialization"?** See [INITIALIZATION.md](./INITIALIZATION.md) for troubleshooting.
+
 ## 1. Install Dependencies
 
 ```bash
 pnpm install
 ```
 
-## 2. Setup Database
+## 2. Setup Environment
 
 Create a `.env.local` file:
 
-```env
-DATABASE_URL="postgresql://postgres:password@localhost:5432/salon_booking"
-JWT_SECRET="your-secret-key-here"
-NEXT_PUBLIC_API_URL="http://localhost:3000"
+```bash
+cp .env.example .env.local
 ```
 
-### Option A: Local PostgreSQL
+Edit `.env.local` and set:
+
+```env
+DATABASE_URL="postgresql://postgres:password@localhost:5432/salonbook"
+JWT_SECRET="generate-a-random-32-character-string-here"
+NODE_ENV="development"
+```
+
+### Option A: Local PostgreSQL (Recommended for Development)
 
 ```bash
-# Create database
-createdb salon_booking
+# Ensure PostgreSQL is running
+# Mac: brew services start postgresql
+# Linux: sudo systemctl start postgresql
+# Windows: Start PostgreSQL from Services
 
-# Create user (if needed)
-createuser -P postgres
+# Create database
+createdb salonbook
+
+# Update DATABASE_URL in .env.local:
+# DATABASE_URL="postgresql://postgres:password@localhost:5432/salonbook"
 ```
 
 ### Option B: Docker
@@ -33,9 +46,21 @@ createuser -P postgres
 ```bash
 docker run --name salon-db \
   -e POSTGRES_PASSWORD=password \
-  -e POSTGRES_DB=salon_booking \
+  -e POSTGRES_DB=salonbook \
   -p 5432:5432 \
   -d postgres:15
+
+# Update DATABASE_URL in .env.local:
+# DATABASE_URL="postgresql://postgres:password@localhost:5432/salonbook"
+```
+
+### Option C: Neon (Cloud PostgreSQL)
+
+```bash
+# 1. Sign up at neon.tech
+# 2. Create a project
+# 3. Copy the connection string
+# 4. Update DATABASE_URL in .env.local with the Neon connection string
 ```
 
 ## 3. Initialize Database
