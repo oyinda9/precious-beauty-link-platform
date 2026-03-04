@@ -1,46 +1,50 @@
-import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/next'
-import './globals.css'
-import { ThemeProvider } from '@/components/theme-provider'
-import { Toaster } from '@/components/ui/toaster'
-import ThemeToggle from '@/components/theme-toggle'
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
+import ThemeToggle from "@/components/theme-toggle";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: "SalonBook- Your Ultimate Beauty Salon Booking Platform",
+  description: "Precious Beauty Link Platform",
+  generator: "precious-beauty-link-platform",
   icons: {
     icon: [
       {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
+        url: "https://chatgpt.com/s/m_69a896dfd6088191bf5e90b08028a852",
+        media: "(prefers-color-scheme: light)",
       },
       {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
+        url: "/favicon.png",
+        media: "(prefers-color-scheme: dark)",
       },
       {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
+        url: "https://chatgpt.com/s/m_69a896dfd6088191bf5e90b08028a852",
+        type: "image/png",
       },
     ],
-    apple: '/apple-icon.png',
+    apple: "https://chatgpt.com/s/m_69a896dfd6088191bf5e90b08028a852",
   },
-}
+};
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        <ThemeProvider attribute="class">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={true}
+        >
           {children}
           <ThemeToggle />
           <Toaster />
@@ -48,5 +52,5 @@ export default function RootLayout({
         <Analytics />
       </body>
     </html>
-  )
+  );
 }
