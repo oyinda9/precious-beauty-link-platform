@@ -2,39 +2,33 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole, BookingStatus } from "@prisma/client";
+import { apiError } from "@/lib/api-utils";
 
 // GET - Fetch a specific booking
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } },
 ) {
   try {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = params;
 
     if (!id) {
       return NextResponse.json(
         { error: "Booking ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const booking = await prisma.booking.findUnique({
       where: { id },
       include: {
-        client: {
-          include: {
-            user: true // This might be causing the error
-          }
-        },
+        client: true,
         service: true,
         salon: true,
         review: true,
@@ -42,22 +36,25 @@ export async function GET(
     });
 
     if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
     // Check authorization
-    if (currentUser.role === UserRole.CLIENT && booking.clientId !== currentUser.userId) {
+    if (
+      currentUser.role === UserRole.CLIENT &&
+      booking.clientId !== currentUser.userId
+    ) {
       return NextResponse.json(
         { error: "Forbidden - You can only view your own bookings" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     // For salon admins/owners, check if they are admins of this salon
-    if (currentUser.role === UserRole.SALON_ADMIN || currentUser.role === UserRole.SALON_STAFF) {
+    if (
+      currentUser.role === UserRole.SALON_ADMIN ||
+      currentUser.role === UserRole.SALON_STAFF
+    ) {
       const salonAdmin = await prisma.salonAdmin.findFirst({
         where: {
           salonId: booking.salonId,
@@ -68,37 +65,27 @@ export async function GET(
       if (!salonAdmin) {
         return NextResponse.json(
           { error: "Forbidden - You are not an admin of this salon" },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }
 
-    return NextResponse.json(
-      { booking },
-      { status: 200 }
-    );
+    return NextResponse.json({ booking }, { status: 200 });
   } catch (error) {
-    console.error("[Booking GET Error]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch booking" },
-      { status: 500 }
-    );
+    return apiError("Booking GET Error", error, "Failed to fetch booking", 500);
   }
 }
 
 // PUT - Update booking status or details
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -106,7 +93,7 @@ export async function PUT(
     if (!id) {
       return NextResponse.json(
         { error: "Booking ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -117,16 +104,13 @@ export async function PUT(
     // First, get the booking to check authorization
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: { 
-        salon: true 
+      include: {
+        salon: true,
       },
     });
 
     if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
     // Check authorization based on role
@@ -135,30 +119,36 @@ export async function PUT(
       if (booking.clientId !== currentUser.userId) {
         return NextResponse.json(
           { error: "Forbidden - You can only update your own bookings" },
-          { status: 403 }
+          { status: 403 },
         );
       }
-      
+
       // Clients can only cancel bookings, not change to other statuses
       if (body.status !== BookingStatus.CANCELLED) {
         return NextResponse.json(
           { error: "Clients can only cancel bookings" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
       // Check if booking can be cancelled
-      const cancellableStatuses: string[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
+      const cancellableStatuses: string[] = [
+        BookingStatus.PENDING,
+        BookingStatus.CONFIRMED,
+      ];
       if (!cancellableStatuses.includes(booking.status)) {
         return NextResponse.json(
           { error: "Cannot cancel booking with this status" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
 
     // For salon admins and owners
-    if (currentUser.role === UserRole.SALON_ADMIN || currentUser.role === UserRole.SALON_STAFF) {
+    if (
+      currentUser.role === UserRole.SALON_ADMIN ||
+      currentUser.role === UserRole.SALON_STAFF
+    ) {
       // Check if user is an admin of this salon
       const salonAdmin = await prisma.salonAdmin.findFirst({
         where: {
@@ -170,7 +160,7 @@ export async function PUT(
       if (!salonAdmin) {
         return NextResponse.json(
           { error: "Forbidden - You are not an admin of this salon" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
@@ -179,10 +169,16 @@ export async function PUT(
         type StatusTransitionMap = {
           [key: string]: string[];
         };
-        
+
         const validTransitions: StatusTransitionMap = {
-          [BookingStatus.PENDING]: [BookingStatus.CONFIRMED, BookingStatus.CANCELLED],
-          [BookingStatus.CONFIRMED]: [BookingStatus.COMPLETED, BookingStatus.CANCELLED],
+          [BookingStatus.PENDING]: [
+            BookingStatus.CONFIRMED,
+            BookingStatus.CANCELLED,
+          ],
+          [BookingStatus.CONFIRMED]: [
+            BookingStatus.COMPLETED,
+            BookingStatus.CANCELLED,
+          ],
           [BookingStatus.COMPLETED]: [],
           [BookingStatus.CANCELLED]: [],
         };
@@ -192,8 +188,10 @@ export async function PUT(
 
         if (!validTransitions[currentStatus]?.includes(targetStatus)) {
           return NextResponse.json(
-            { error: `Cannot transition from ${currentStatus} to ${targetStatus}` },
-            { status: 400 }
+            {
+              error: `Cannot transition from ${currentStatus} to ${targetStatus}`,
+            },
+            { status: 400 },
           );
         }
       }
@@ -212,18 +210,21 @@ export async function PUT(
       if (!salonStaff) {
         return NextResponse.json(
           { error: "Forbidden - You are not staff of this salon" },
-          { status: 403 }
+          { status: 403 },
         );
       }
 
       // Staff might only be able to update certain statuses
       if (body.status) {
         // Staff can only mark as completed or confirmed, not cancel
-        const allowedStaffTransitions: string[] = [BookingStatus.CONFIRMED, BookingStatus.COMPLETED];
+        const allowedStaffTransitions: string[] = [
+          BookingStatus.CONFIRMED,
+          BookingStatus.COMPLETED,
+        ];
         if (!allowedStaffTransitions.includes(body.status)) {
           return NextResponse.json(
             { error: "Staff can only confirm or complete bookings" },
-            { status: 403 }
+            { status: 403 },
           );
         }
       }
@@ -238,7 +239,7 @@ export async function PUT(
     if (Object.keys(updateData).length === 0) {
       return NextResponse.json(
         { error: "No valid fields to update" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -257,13 +258,14 @@ export async function PUT(
         message: "Booking updated successfully",
         booking: updatedBooking,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("[Booking PUT Error]", error);
-    return NextResponse.json(
-      { error: "Failed to update booking" },
-      { status: 500 }
+    return apiError(
+      "Booking PUT Error",
+      error,
+      "Failed to update booking",
+      500,
     );
   }
 }
@@ -271,16 +273,13 @@ export async function PUT(
 // DELETE - Cancel a booking
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
@@ -288,36 +287,33 @@ export async function DELETE(
     if (!id) {
       return NextResponse.json(
         { error: "Booking ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: { 
-        salon: true 
+      include: {
+        salon: true,
       },
     });
 
     if (!booking) {
-      return NextResponse.json(
-        { error: "Booking not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
     }
 
     // Check authorization
     if (currentUser.role === UserRole.CLIENT) {
       if (booking.clientId !== currentUser.userId) {
-        return NextResponse.json(
-          { error: "Forbidden" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 
     // For salon admins and owners
-    if (currentUser.role === UserRole.SALON_ADMIN || currentUser.role === UserRole.SALON_OWNER) {
+    if (
+      currentUser.role === UserRole.SALON_ADMIN ||
+      currentUser.role === UserRole.SALON_STAFF
+    ) {
       const salonAdmin = await prisma.salonAdmin.findFirst({
         where: {
           salonId: booking.salonId,
@@ -326,10 +322,7 @@ export async function DELETE(
       });
 
       if (!salonAdmin) {
-        return NextResponse.json(
-          { error: "Forbidden" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 
@@ -343,19 +336,19 @@ export async function DELETE(
       });
 
       if (!salonStaff) {
-        return NextResponse.json(
-          { error: "Forbidden" },
-          { status: 403 }
-        );
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
 
     // Only allow cancellation of pending/confirmed bookings
-    const cancellableStatuses: string[] = [BookingStatus.PENDING, BookingStatus.CONFIRMED];
+    const cancellableStatuses: string[] = [
+      BookingStatus.PENDING,
+      BookingStatus.CONFIRMED,
+    ];
     if (!cancellableStatuses.includes(booking.status)) {
       return NextResponse.json(
         { error: "Cannot cancel booking with this status" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -366,13 +359,14 @@ export async function DELETE(
 
     return NextResponse.json(
       { message: "Booking cancelled successfully", booking: cancelledBooking },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("[Booking DELETE Error]", error);
-    return NextResponse.json(
-      { error: "Failed to cancel booking" },
-      { status: 500 }
+    return apiError(
+      "Booking DELETE Error",
+      error,
+      "Failed to cancel booking",
+      500,
     );
   }
 }

@@ -6,6 +6,7 @@ import {
   isSalonAdmin,
   hashPassword,
 } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 import { UserRole } from "@prisma/client";
 
 // GET staff for a salon
@@ -54,11 +55,7 @@ export async function GET(
 
     return NextResponse.json({ staff });
   } catch (error) {
-    console.error("[Staff GET Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Staff GET Error", error, "Internal server error", 500);
   }
 }
 
@@ -154,10 +151,6 @@ export async function POST(
       { status: 201 },
     );
   } catch (error) {
-    console.error("[Staff POST Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Staff POST Error", error, "Internal server error", 500);
   }
 }

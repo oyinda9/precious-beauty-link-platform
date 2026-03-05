@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extractToken, verifyToken, isSalonAdmin } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -32,10 +33,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ salons, user }, { status: 200 });
   } catch (error) {
-    console.error("[Salon Me GET Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Salon Me GET Error", error, "Internal server error", 500);
   }
 }

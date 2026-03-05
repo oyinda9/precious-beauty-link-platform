@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { apiError } from "@/lib/api-utils";
 
 // GET - Fetch all salons or salons by filters
 export async function GET(request: NextRequest) {
@@ -49,14 +50,10 @@ export async function GET(request: NextRequest) {
         limit,
         offset,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("[Salons GET Error]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch salons" },
-      { status: 500 }
-    );
+    return apiError("Salons GET Error", error, "Failed to fetch salons", 500);
   }
 }
 
@@ -66,26 +63,32 @@ export async function POST(request: NextRequest) {
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     if (currentUser.role === UserRole.CLIENT) {
       return NextResponse.json(
         { error: "Clients cannot create salons" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
     const body = await request.json();
-    const { name, description, address, city, phone, email, latitude, longitude } = body;
+    const {
+      name,
+      description,
+      address,
+      city,
+      phone,
+      email,
+      latitude,
+      longitude,
+    } = body;
 
     if (!name || !address || !city || !phone || !email) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -102,7 +105,10 @@ export async function POST(request: NextRequest) {
         email,
         latitude: latitude || null,
         longitude: longitude || null,
-        id: currentUser.role === UserRole.SUPER_ADMIN ? currentUser.userId : undefined,
+        id:
+          currentUser.role === UserRole.SUPER_ADMIN
+            ? currentUser.userId
+            : undefined,
       },
     });
 
@@ -111,13 +117,9 @@ export async function POST(request: NextRequest) {
         message: "Salon created successfully",
         salon,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    console.error("[Salons POST Error]", error);
-    return NextResponse.json(
-      { error: "Failed to create salon" },
-      { status: 500 }
-    );
+    return apiError("Salons POST Error", error, "Failed to create salon", 500);
   }
 }

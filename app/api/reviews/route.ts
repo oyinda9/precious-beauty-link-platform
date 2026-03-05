@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { apiError } from "@/lib/api-utils";
 
 // GET - Fetch reviews for a salon
 export async function GET(request: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(request: NextRequest) {
     if (!salonId) {
       return NextResponse.json(
         { error: "salonId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -40,14 +41,10 @@ export async function GET(request: NextRequest) {
         averageRating: Math.round(avgRating * 10) / 10,
         totalReviews: reviews.length,
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
-    console.error("[Reviews GET Error]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch reviews" },
-      { status: 500 }
-    );
+    return apiError("Reviews GET Error", error, "Failed to fetch reviews", 500);
   }
 }
 
@@ -59,7 +56,7 @@ export async function POST(request: NextRequest) {
     if (!currentUser || currentUser.role !== UserRole.CLIENT) {
       return NextResponse.json(
         { error: "Only clients can post reviews" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -69,14 +66,14 @@ export async function POST(request: NextRequest) {
     if (!salonId || !bookingId || !rating) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (rating < 1 || rating > 5) {
       return NextResponse.json(
         { error: "Rating must be between 1 and 5" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -88,7 +85,7 @@ export async function POST(request: NextRequest) {
     if (!booking || booking.clientId !== currentUser.userId) {
       return NextResponse.json(
         { error: "Booking not found or unauthorized" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -100,7 +97,7 @@ export async function POST(request: NextRequest) {
     if (existingReview) {
       return NextResponse.json(
         { error: "Review already exists for this booking" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -127,7 +124,8 @@ export async function POST(request: NextRequest) {
       where: { salonId },
     });
 
-    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+    const avgRating =
+      allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
 
     await prisma.salon.update({
       where: { id: salonId },
@@ -142,13 +140,14 @@ export async function POST(request: NextRequest) {
         message: "Review created successfully",
         review,
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
-    console.error("[Reviews POST Error]", error);
-    return NextResponse.json(
-      { error: "Failed to create review" },
-      { status: 500 }
+    return apiError(
+      "Reviews POST Error",
+      error,
+      "Failed to create review",
+      500,
     );
   }
 }

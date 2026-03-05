@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { extractToken, verifyToken, isSalonAdmin } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 
 // PUT update service
 export async function PUT(request: NextRequest, { params }: { params: { slug: string; id: string } }) {
@@ -43,8 +44,7 @@ export async function PUT(request: NextRequest, { params }: { params: { slug: st
     });
     return NextResponse.json({ message: "Service updated", service }, { status: 200 });
   } catch (error) {
-    console.error("[Service PUT Error]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return apiError("Service PUT Error", error, "Internal server error", 500);
   }
 }
 
@@ -70,7 +70,6 @@ export async function DELETE(request: NextRequest, { params }: { params: { slug:
 
     return NextResponse.json({ message: "Service deleted" }, { status: 200 });
   } catch (error) {
-    console.error("[Service DELETE Error]", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return apiError("Service DELETE Error", error, "Internal server error", 500);
   }
 }

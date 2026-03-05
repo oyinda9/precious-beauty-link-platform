@@ -8,7 +8,8 @@ const COOKIE_NAME = "auth_token";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
 export interface JWTPayload {
-  fullName: any;
+  // fullName may be missing in some flows (e.g. service tokens), make it optional
+  fullName?: string | null;
   userId: string;
   email: string;
   role: UserRole;
@@ -23,7 +24,7 @@ export async function hashPassword(password: string): Promise<string> {
 // Verify password
 export async function verifyPassword(
   password: string,
-  hashedPassword: string
+  hashedPassword: string,
 ): Promise<boolean> {
   return bcryptjs.compare(password, hashedPassword);
 }
@@ -101,4 +102,3 @@ export function extractToken(authHeader: string | null): string | null {
   if (parts.length !== 2 || parts[0] !== "Bearer") return null;
   return parts[1];
 }
-

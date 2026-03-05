@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole, BookingStatus } from "@prisma/client";
+import { apiError } from "@/lib/api-utils";
 
 // GET - Fetch bookings with filters
 export async function GET(request: NextRequest) {
@@ -57,10 +58,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ bookings }, { status: 200 });
   } catch (error) {
-    console.error("[Bookings GET Error]", error);
-    return NextResponse.json(
-      { error: "Failed to fetch bookings" },
-      { status: 500 },
+    return apiError(
+      "Bookings GET Error",
+      error,
+      "Failed to fetch bookings",
+      500,
     );
   }
 }
@@ -185,9 +187,11 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("[Bookings POST Error]", error);
-    const errorMessage =
-      error instanceof Error ? error.message : "Failed to create booking";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    return apiError(
+      "Bookings POST Error",
+      error,
+      error instanceof Error ? error.message : "Failed to create booking",
+      500,
+    );
   }
 }

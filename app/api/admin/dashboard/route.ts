@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken, isSuperAdmin } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 
 // GET super admin dashboard statistics
 export async function GET(request: NextRequest) {
@@ -144,10 +145,11 @@ export async function GET(request: NextRequest) {
       analytics: { bookingsBySalon },
     });
   } catch (error) {
-    console.error("[Admin Dashboard GET Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
+    return apiError(
+      "Admin Dashboard GET Error",
+      error,
+      "Internal server error",
+      500,
     );
   }
 }

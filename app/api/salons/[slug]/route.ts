@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken, isSuperAdmin } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 
 // GET salon by slug
 export async function GET(
@@ -56,11 +57,7 @@ export async function GET(
 
     return NextResponse.json({ salon });
   } catch (error) {
-    console.error("[Salon GET Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Salon GET Error", error, "Internal server error", 500);
   }
 }
 
@@ -120,11 +117,7 @@ export async function PUT(
 
     return NextResponse.json({ salon: updatedSalon });
   } catch (error) {
-    console.error("[Salon PUT Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Salon PUT Error", error, "Internal server error", 500);
   }
 }
 
@@ -175,10 +168,6 @@ export async function DELETE(
       { status: 200 },
     );
   } catch (error) {
-    console.error("[Salon DELETE Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Salon DELETE Error", error, "Internal server error", 500);
   }
 }

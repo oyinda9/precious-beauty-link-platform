@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
+import { apiError } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
@@ -67,7 +68,11 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(password);
 
     // Validate role
-    const validRoles = [UserRole.CLIENT, UserRole.SUPER_ADMIN, UserRole.SALON_ADMIN];
+    const validRoles = [
+      UserRole.CLIENT,
+      UserRole.SUPER_ADMIN,
+      UserRole.SALON_ADMIN,
+    ];
     const userRole = validRoles.includes(role) ? role : UserRole.CLIENT;
 
     // Create user
@@ -147,7 +152,6 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error) {
-    console.error("[Register Error]", error);
-    return NextResponse.json({ error: "Registration failed" }, { status: 500 });
+    return apiError("Register Error", error, "Registration failed", 500);
   }
 }
