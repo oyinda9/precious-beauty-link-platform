@@ -10,41 +10,22 @@ const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "SalonBook- Your Ultimate Beauty Salon Booking Platform",
+  title: "SalonBook - Your Ultimate Beauty Salon Booking Platform",
   description: "Precious Beauty Link Platform",
   generator: "precious-beauty-link-platform",
   icons: {
-    icon: [
-      {
-        url: "https://chatgpt.com/s/m_69a896dfd6088191bf5e90b08028a852",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/favicon.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "https://chatgpt.com/s/m_69a896dfd6088191bf5e90b08028a852",
-        type: "image/png",
-      },
-    ],
-    apple: "https://chatgpt.com/s/m_69a896dfd6088191bf5e90b08028a852",
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="light"
-          enableSystem={true}
-        >
+      <body className={`${_geist.className} ${_geistMono.className} font-sans antialiased`}>
+        <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
           {children}
           <ThemeToggle />
           <Toaster />
