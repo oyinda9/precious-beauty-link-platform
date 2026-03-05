@@ -1,25 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import {
-  verifyToken,
-  extractToken,
-  isSalonAdmin,
-} from "@/lib/auth";
+import { verifyToken, extractToken, isSalonAdmin } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 
 // GET services for a salon
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     // Await the params in Next.js 15+
     const { slug } = await params;
-    
+
     if (!slug) {
-      return NextResponse.json(
-        { error: "Slug is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
     }
 
     const salon = await prisma.salon.findUnique({
@@ -41,28 +35,21 @@ export async function GET(
 
     return NextResponse.json({ services });
   } catch (error) {
-    console.error("[Services GET Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 },
-    );
+    return apiError("Services GET Error", error, "Internal server error", 500);
   }
 }
 
 // POST create service (salon admin only)
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     // Await the params in Next.js 15+
     const { slug } = await params;
-    
+
     if (!slug) {
-      return NextResponse.json(
-        { error: "Slug is required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Slug is required" }, { status: 400 });
     }
 
     const token = extractToken(request.headers.get("authorization"));
@@ -119,10 +106,11 @@ export async function POST(
       { status: 201 },
     );
   } catch (error: any) {
-    console.error("[Services POST Error]", error);
-    return NextResponse.json(
-      { error: error?.message || error?.toString() || "Internal server error" },
-      { status: 500 },
+    return apiError(
+      "Services POST Error",
+      error,
+      error?.message || error?.toString() || "Internal server error",
+      500,
     );
   }
 }

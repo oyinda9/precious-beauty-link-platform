@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken, isSuperAdmin } from "@/lib/auth";
+import { apiError } from "@/lib/api-utils";
 import { SubscriptionStatus, SubscriptionPlan } from "@prisma/client";
 
 // GET subscription for a salon
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: { slug: string } },
 ) {
   try {
     const salon = await prisma.salon.findUnique({
@@ -15,18 +16,16 @@ export async function GET(
     });
 
     if (!salon) {
-      return NextResponse.json(
-        { error: "Salon not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Salon not found" }, { status: 404 });
     }
 
     return NextResponse.json({ subscription: salon.subscription });
   } catch (error) {
-    console.error("[Subscription GET Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return apiError(
+      "Subscription GET Error",
+      error,
+      "Internal server error",
+      500,
     );
   }
 }
@@ -34,23 +33,17 @@ export async function GET(
 // PUT update subscription (super admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: { slug: string } },
 ) {
   try {
     const token = extractToken(request.headers.get("authorization"));
     if (!token) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const payload = verifyToken(token);
     if (!payload || !isSuperAdmin(payload.role)) {
-      return NextResponse.json(
-        { error: "Forbidden" },
-        { status: 403 }
-      );
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();
@@ -61,10 +54,7 @@ export async function PUT(
     });
 
     if (!salon) {
-      return NextResponse.json(
-        { error: "Salon not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Salon not found" }, { status: 404 });
     }
 
     // Get or create subscription
@@ -86,7 +76,9 @@ export async function PUT(
         data: {
           plan: plan || subscription.plan,
           status: status || subscription.status,
-          trialEndsAt: trialEndsAt ? new Date(trialEndsAt) : subscription.trialEndsAt,
+          trialEndsAt: trialEndsAt
+            ? new Date(trialEndsAt)
+            : subscription.trialEndsAt,
         },
       });
     }
@@ -99,10 +91,11 @@ export async function PUT(
 
     return NextResponse.json({ subscription });
   } catch (error) {
-    console.error("[Subscription PUT Error]", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return apiError(
+      "Subscription PUT Error",
+      error,
+      "Internal server error",
+      500,
     );
   }
 }

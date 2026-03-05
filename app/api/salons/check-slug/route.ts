@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { apiError } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,10 +26,6 @@ export async function GET(request: NextRequest) {
       { status: 200 }
     );
   } catch (error) {
-    console.error("[Check Slug Error]", error);
-    return NextResponse.json(
-      { error: "Failed to check slug availability" },
-      { status: 500 }
-    );
+    return apiError("Check Slug Error", error, "Failed to check slug availability", 500);
   }
 }
