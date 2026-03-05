@@ -2,11 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Card,
-  CardContent,
- 
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -131,16 +127,17 @@ export default function ClientBookingsPage() {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
-  const filteredBookings = filterStatus === "ALL" 
-    ? bookings 
-    : bookings.filter(b => b.status === filterStatus);
+  const filteredBookings =
+    filterStatus === "ALL"
+      ? bookings
+      : bookings.filter((b) => b.status === filterStatus);
 
   const statusCounts = {
     ALL: bookings.length,
-    PENDING: bookings.filter(b => b.status === "PENDING").length,
-    CONFIRMED: bookings.filter(b => b.status === "CONFIRMED").length,
-    COMPLETED: bookings.filter(b => b.status === "COMPLETED").length,
-    CANCELLED: bookings.filter(b => b.status === "CANCELLED").length,
+    PENDING: bookings.filter((b) => b.status === "PENDING").length,
+    CONFIRMED: bookings.filter((b) => b.status === "CONFIRMED").length,
+    COMPLETED: bookings.filter((b) => b.status === "COMPLETED").length,
+    CANCELLED: bookings.filter((b) => b.status === "CANCELLED").length,
   };
 
   if (loading) {
@@ -166,7 +163,7 @@ export default function ClientBookingsPage() {
             <div>
               <h1 className="font-bold text-gray-800">My Bookings</h1>
               <p className="text-xs text-gray-500">
-                {bookings.length} appointment{bookings.length !== 1 ? 's' : ''}
+                {bookings.length} appointment{bookings.length !== 1 ? "s" : ""}
               </p>
             </div>
           </div>
@@ -261,10 +258,11 @@ export default function ClientBookingsPage() {
                 No Bookings Yet
               </h2>
               <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                You haven't made any salon appointments yet. Browse our salons and book your first appointment today!
+                You haven't made any salon appointments yet. Browse our salons
+                and book your first appointment today!
               </p>
-              <Button 
-                onClick={() => router.push("/")} 
+              <Button
+                onClick={() => router.push("/")}
                 className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2"
               >
                 Browse Salons <ArrowRight size={16} />
@@ -280,40 +278,43 @@ export default function ClientBookingsPage() {
                   Your Appointments
                 </h2>
                 <p className="text-gray-600">
-                  You have {bookings.length} total appointment{bookings.length !== 1 ? 's' : ''}
+                  You have {bookings.length} total appointment
+                  {bookings.length !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
 
             {/* Status Filter Chips - Mobile & Desktop */}
             <div className="flex flex-wrap gap-2 mb-6">
-              {["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].map((status) => (
-                <Button
-                  key={status}
-                  variant={filterStatus === status ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setFilterStatus(status)}
-                  className={`rounded-full ${
-                    filterStatus === status
-                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
-                      : "border-purple-200 hover:border-purple-300"
-                  }`}
-                >
-                  {status === "ALL" ? "All" : status}
-                  {status !== "ALL" && (
-                    <Badge 
-                      variant="secondary" 
-                      className={`ml-2 ${
-                        filterStatus === status 
-                          ? "bg-white/20 text-white" 
-                          : "bg-purple-100 text-purple-800"
-                      }`}
-                    >
-                      {statusCounts[status as keyof typeof statusCounts]}
-                    </Badge>
-                  )}
-                </Button>
-              ))}
+              {["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].map(
+                (status) => (
+                  <Button
+                    key={status}
+                    variant={filterStatus === status ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFilterStatus(status)}
+                    className={`rounded-full ${
+                      filterStatus === status
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                        : "border-purple-200 hover:border-purple-300"
+                    }`}
+                  >
+                    {status === "ALL" ? "All" : status}
+                    {status !== "ALL" && (
+                      <Badge
+                        variant="secondary"
+                        className={`ml-2 ${
+                          filterStatus === status
+                            ? "bg-white/20 text-white"
+                            : "bg-purple-100 text-purple-800"
+                        }`}
+                      >
+                        {statusCounts[status as keyof typeof statusCounts]}
+                      </Badge>
+                    )}
+                  </Button>
+                ),
+              )}
             </div>
 
             {/* Bookings List */}
@@ -321,7 +322,11 @@ export default function ClientBookingsPage() {
               {filteredBookings.length === 0 ? (
                 <Card className="text-center py-8 border-2 border-dashed border-purple-200">
                   <CardContent>
-                    <p className="text-gray-500">No {filterStatus !== "ALL" ? filterStatus.toLowerCase() : ""} bookings found</p>
+                    <p className="text-gray-500">
+                      No{" "}
+                      {filterStatus !== "ALL" ? filterStatus.toLowerCase() : ""}{" "}
+                      bookings found
+                    </p>
                   </CardContent>
                 </Card>
               ) : (
@@ -334,16 +339,23 @@ export default function ClientBookingsPage() {
                       {/* Mobile Layout */}
                       <div className="lg:hidden">
                         {/* Status Bar */}
-                        <div className={`px-4 py-2 ${getStatusColor(booking.status)} border-b border-purple-100 flex items-center justify-between`}>
+                        <div
+                          className={`px-4 py-2 ${getStatusColor(booking.status)} border-b border-purple-100 flex items-center justify-between`}
+                        >
                           <div className="flex items-center gap-2">
                             {getStatusIcon(booking.status)}
-                            <span className="font-medium text-sm">{booking.status}</span>
+                            <span className="font-medium text-sm">
+                              {booking.status}
+                            </span>
                           </div>
                           <span className="text-xs">
-                            {new Date(booking.bookingDate).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                            })}
+                            {new Date(booking.bookingDate).toLocaleDateString(
+                              "en-US",
+                              {
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
                           </span>
                         </div>
 
@@ -357,7 +369,8 @@ export default function ClientBookingsPage() {
                             <div className="flex items-center gap-2 mt-1">
                               <Scissors className="w-4 h-4 text-purple-500" />
                               <p className="text-sm text-gray-600">
-                                {booking.service.name} • {booking.service.duration} mins
+                                {booking.service.name} •{" "}
+                                {booking.service.duration} mins
                               </p>
                             </div>
                             <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
@@ -374,7 +387,9 @@ export default function ClientBookingsPage() {
                               <Calendar className="w-4 h-4 text-purple-600 mb-1" />
                               <p className="text-xs text-gray-600">Date</p>
                               <p className="font-medium text-sm">
-                                {new Date(booking.bookingDate).toLocaleDateString("en-US", {
+                                {new Date(
+                                  booking.bookingDate,
+                                ).toLocaleDateString("en-US", {
                                   weekday: "short",
                                   month: "short",
                                   day: "numeric",
@@ -400,7 +415,9 @@ export default function ClientBookingsPage() {
                           {/* Footer */}
                           <div className="flex items-center justify-between pt-2 border-t border-purple-100">
                             <div>
-                              <p className="text-xs text-gray-500">Total Amount</p>
+                              <p className="text-xs text-gray-500">
+                                Total Amount
+                              </p>
                               <p className="text-xl font-bold text-purple-600">
                                 ₦{booking.totalPrice.toLocaleString()}
                               </p>
@@ -408,7 +425,9 @@ export default function ClientBookingsPage() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => router.push(`/salon/${booking.salon.slug}`)}
+                              onClick={() =>
+                                router.push(`/salon/${booking.salon.slug}`)
+                              }
                               className="border-purple-200 hover:border-purple-300"
                             >
                               View Salon
@@ -439,7 +458,8 @@ export default function ClientBookingsPage() {
                                 <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
                                   <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
                                   <span>
-                                    {booking.salon.address}, {booking.salon.city}
+                                    {booking.salon.address},{" "}
+                                    {booking.salon.city}
                                   </span>
                                 </div>
                                 {booking.notes && (
@@ -459,7 +479,9 @@ export default function ClientBookingsPage() {
                                 <div>
                                   <p className="text-xs text-gray-500">Date</p>
                                   <p className="font-medium">
-                                    {new Date(booking.bookingDate).toLocaleDateString("en-US", {
+                                    {new Date(
+                                      booking.bookingDate,
+                                    ).toLocaleDateString("en-US", {
                                       weekday: "short",
                                       month: "short",
                                       day: "numeric",
@@ -473,7 +495,8 @@ export default function ClientBookingsPage() {
                                 <div>
                                   <p className="text-xs text-gray-500">Time</p>
                                   <p className="font-medium">
-                                    {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
+                                    {formatTime(booking.startTime)} -{" "}
+                                    {formatTime(booking.endTime)}
                                   </p>
                                 </div>
                               </div>
@@ -490,7 +513,9 @@ export default function ClientBookingsPage() {
                                 {booking.status}
                               </Badge>
                               <div className="mt-4">
-                                <p className="text-xs text-gray-500">Total Amount</p>
+                                <p className="text-xs text-gray-500">
+                                  Total Amount
+                                </p>
                                 <p className="text-2xl font-bold text-purple-600">
                                   ₦{booking.totalPrice.toLocaleString()}
                                 </p>
@@ -498,10 +523,13 @@ export default function ClientBookingsPage() {
                             </div>
                             <Button
                               variant="ghost"
-                              onClick={() => router.push(`/salon/${booking.salon.slug}`)}
+                              onClick={() =>
+                                router.push(`/salon/${booking.salon.slug}`)
+                              }
                               className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                             >
-                              View Details <ArrowRight className="w-4 h-4 ml-1" />
+                              View Details{" "}
+                              <ArrowRight className="w-4 h-4 ml-1" />
                             </Button>
                           </div>
                         </div>
