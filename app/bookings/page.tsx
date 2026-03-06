@@ -17,9 +17,6 @@ import {
   CalendarDays,
   CheckCircle,
   AlertCircle,
-  User,
-  Phone,
-  Mail,
   Home,
 } from "lucide-react";
 

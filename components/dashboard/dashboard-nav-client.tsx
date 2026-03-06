@@ -42,7 +42,7 @@ export function DashboardNavClient({ navItems }: { navItems: NavItem[] }) {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (error) {
-      console.error('[v0] Logout failed:', error);
+      console.error(' Logout failed:', error);
     }
     router.push('/login');
   };

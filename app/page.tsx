@@ -1,4 +1,4 @@
-'use client';
+// ...existing code...
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,8 +23,6 @@ import {
   Settings,
   CreditCard
 } from 'lucide-react';
-import { prisma } from '@/lib/prisma';
-
 export default async function Home() {
   const features = [
     {
@@ -599,20 +597,7 @@ export default async function Home() {
         </div>
       </footer>
 
-      <style jsx>{`
-        @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
+     
     </div>
   );
 }
