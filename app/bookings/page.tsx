@@ -139,7 +139,7 @@ export default function ClientBookingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your bookings...</p>
@@ -149,37 +149,52 @@ export default function ClientBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
+    <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50">
       {/* Mobile Header */}
-      <div className="lg:hidden bg-white border-b border-purple-100 sticky top-0 z-30">
-        <div className="px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-2">
-              <CalendarDays className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h1 className="font-bold text-gray-800">My Bookings</h1>
-              <p className="text-xs text-gray-500">
-                {bookings.length} appointment{bookings.length !== 1 ? "s" : ""}
-              </p>
-            </div>
+      {/* Mobile Header + Slide Menu */}
+      <div className="lg:hidden bg-white border-b border-purple-100 sticky top-0 z-40 flex items-center justify-between px-4 py-3">
+        <button
+          onClick={() => setMobileMenuOpen((v) => !v)}
+          className="p-2 rounded-lg bg-purple-50 text-purple-700 focus:outline-none"
+          aria-label="Open menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="bg-linear-to-r from-purple-600 to-pink-600 rounded-lg p-2">
+            <CalendarDays className="w-5 h-5 text-white" />
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            <Menu className="w-5 h-5" />
-          </Button>
+          <div>
+            <h1 className="font-bold text-gray-800">My Bookings</h1>
+            <p className="text-xs text-gray-500">
+              {bookings.length} appointment{bookings.length !== 1 ? "s" : ""}
+            </p>
+          </div>
         </div>
+        <div className="w-5 h-5" /> {/* Spacer for symmetry */}
+      </div>
 
-        {/* Mobile Menu */}
-        {mobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white border-b border-purple-100 shadow-lg p-4 space-y-3">
+      {/* Mobile Slide-out Menu */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex">
+          <div className="w-64 bg-white h-full shadow-lg p-4 flex flex-col">
+            <div className="flex items-center justify-between mb-6">
+              <span className="font-bold text-gray-800">Menu</span>
+              <button
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 rounded-lg bg-purple-50 text-purple-700"
+                aria-label="Close menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
             <Button
               variant="ghost"
-              className="w-full justify-start gap-2"
-              onClick={() => router.push("/")}
+              className="w-full justify-start gap-2 mb-2"
+              onClick={() => {
+                router.push("/");
+                setMobileMenuOpen(false);
+              }}
             >
               <Home className="w-4 h-4" />
               Browse Salons
@@ -187,25 +202,29 @@ export default function ClientBookingsPage() {
             <Button
               variant="ghost"
               className="w-full justify-start gap-2 text-red-600"
-              onClick={handleLogout}
+              onClick={() => {
+                handleLogout();
+                setMobileMenuOpen(false);
+              }}
             >
               <LogOut className="w-4 h-4" />
               Logout
             </Button>
           </div>
-        )}
-      </div>
+          <div className="flex-1" onClick={() => setMobileMenuOpen(false)} />
+        </div>
+      )}
 
       {/* Desktop Header */}
       <div className="hidden lg:block bg-white border-b border-purple-100 sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-4">
+              <div className="bg-linear-to-r from-purple-600 to-pink-600 rounded-2xl p-4">
                 <CalendarDays className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   My Bookings
                 </h1>
                 <p className="text-gray-600 text-sm mt-1">
@@ -237,7 +256,7 @@ export default function ClientBookingsPage() {
       <div className="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 shrink-0" />
             <div>
               <p className="font-semibold">Error loading bookings</p>
               <p className="text-sm mt-1">{error}</p>
@@ -248,7 +267,7 @@ export default function ClientBookingsPage() {
         {bookings.length === 0 ? (
           <Card className="text-center py-12 border-2 border-purple-100">
             <CardContent>
-              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+              <div className="bg-linear-to-r from-purple-100 to-pink-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
                 <CalendarDays size={48} className="text-purple-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -260,7 +279,7 @@ export default function ClientBookingsPage() {
               </p>
               <Button
                 onClick={() => router.push("/")}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2"
+                className="bg-linear-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2"
               >
                 Browse Salons <ArrowRight size={16} />
               </Button>
@@ -292,7 +311,7 @@ export default function ClientBookingsPage() {
                     onClick={() => setFilterStatus(status)}
                     className={`rounded-full ${
                       filterStatus === status
-                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                        ? "bg-linear-to-r from-purple-600 to-pink-600 text-white"
                         : "border-purple-200 hover:border-purple-300"
                     }`}
                   >
@@ -315,7 +334,7 @@ export default function ClientBookingsPage() {
             </div>
 
             {/* Bookings List */}
-            <div className="space-y-4">
+            <div className="space-y-6">
               {filteredBookings.length === 0 ? (
                 <Card className="text-center py-8 border-2 border-dashed border-purple-200">
                   <CardContent>
@@ -330,7 +349,7 @@ export default function ClientBookingsPage() {
                 filteredBookings.map((booking) => (
                   <Card
                     key={booking.id}
-                    className="border-2 border-purple-100 hover:border-purple-200 transition-all overflow-hidden"
+                    className="border-2 border-purple-100 hover:border-purple-200 transition-all overflow-hidden rounded-xl shadow-sm"
                   >
                     <CardContent className="p-0">
                       {/* Mobile Layout */}
@@ -357,9 +376,9 @@ export default function ClientBookingsPage() {
                         </div>
 
                         {/* Content */}
-                        <div className="p-4 space-y-4">
+                        <div className="p-4 space-y-5">
                           {/* Salon & Service */}
-                          <div>
+                          <div className="space-y-1">
                             <h3 className="font-bold text-gray-900 text-lg">
                               {booking.salon.name}
                             </h3>
@@ -371,7 +390,7 @@ export default function ClientBookingsPage() {
                               </p>
                             </div>
                             <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
-                              <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                              <MapPin className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
                               <span className="text-sm">
                                 {booking.salon.address}, {booking.salon.city}
                               </span>
@@ -380,7 +399,7 @@ export default function ClientBookingsPage() {
 
                           {/* Date & Time */}
                           <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-purple-50 rounded-lg p-3">
+                            <div className="bg-purple-50 rounded-lg p-3 flex flex-col items-start">
                               <Calendar className="w-4 h-4 text-purple-600 mb-1" />
                               <p className="text-xs text-gray-600">Date</p>
                               <p className="font-medium text-sm">
@@ -393,7 +412,7 @@ export default function ClientBookingsPage() {
                                 })}
                               </p>
                             </div>
-                            <div className="bg-pink-50 rounded-lg p-3">
+                            <div className="bg-pink-50 rounded-lg p-3 flex flex-col items-start">
                               <Clock className="w-4 h-4 text-pink-600 mb-1" />
                               <p className="text-xs text-gray-600">Time</p>
                               <p className="font-medium text-sm">
@@ -439,7 +458,7 @@ export default function ClientBookingsPage() {
                           {/* Salon & Service - 5 columns */}
                           <div className="col-span-5">
                             <div className="flex items-start gap-3">
-                              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-3">
+                              <div className="bg-linear-to-r from-purple-100 to-pink-100 rounded-xl p-3">
                                 <Scissors className="w-6 h-6 text-purple-600" />
                               </div>
                               <div>
@@ -453,7 +472,7 @@ export default function ClientBookingsPage() {
                                   Duration: {booking.service.duration} mins
                                 </p>
                                 <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
-                                  <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                                  <MapPin className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
                                   <span>
                                     {booking.salon.address},{" "}
                                     {booking.salon.city}
@@ -541,7 +560,7 @@ export default function ClientBookingsPage() {
             <div className="lg:hidden fixed bottom-6 left-4 right-4">
               <Button
                 onClick={() => router.push("/")}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2 shadow-lg"
+                className="w-full bg-linear-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2 shadow-lg"
               >
                 Book More Appointments <ArrowRight size={16} />
               </Button>
