@@ -17,6 +17,8 @@
     "isolatedModules": true,
     "jsx": "react-jsx",
     "incremental": true,
+    "types": [],
+    "baseUrl": ".",
     "plugins": [
       {
         "name": "next"
@@ -36,7 +38,8 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    ".next"
   ],
   "ts-node": {
     "compilerOptions": {

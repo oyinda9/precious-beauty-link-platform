@@ -1,22 +1,31 @@
-// components/theme-provider-wrapper.tsx (Client Component)
-'use client'
-
+import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/toaster";
-import ThemeToggle from "@/components/theme-toggle";
+import "./globals.css";
+import ClientWrapper from "../components/client-wrapper";
 
-const _geist = Geist({ subsets: ["latin"] });
-const _geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({ subsets: ["latin"] });
+const geistMono = Geist_Mono({ subsets: ["latin"] });
 
-export default function ThemeProviderWrapper({ children }: { children: React.ReactNode }) {
+export const metadata: Metadata = {
+  title: "SalonBook - Your Ultimate Beauty Salon Booking Platform",
+  description: "Precious Beauty Link Platform",
+  generator: "precious-beauty-link-platform",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/apple-touch-icon.png",
+  },
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={true}>
-      <div className={`${_geist.className} ${_geistMono.className} font-sans antialiased`}>
-        {children}
-        <ThemeToggle />
-        <Toaster />
-      </div>
-    </ThemeProvider>
+    <html lang="en">
+      <body
+        className={`${geist.className} ${geistMono.className} font-sans antialiased`}
+      >
+        <ClientWrapper>{children}</ClientWrapper>
+      </body>
+    </html>
   );
 }
