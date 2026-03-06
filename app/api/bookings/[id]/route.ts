@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { UserRole, BookingStatus } from "@prisma/client";
 import { apiError } from "@/lib/api-utils";
+import { sendSMS, sendWhatsApp } from "@/lib/sms";
+import { sendEmail } from "@/lib/email";
 
 // GET - Fetch a specific booking
 export async function GET(
@@ -252,6 +254,30 @@ export async function PUT(
         salon: true,
       },
     });
+
+    // Send notifications if booking is confirmed
+    if (body.status === BookingStatus.CONFIRMED && updatedBooking.client?.user) {
+      const client = updatedBooking.client.user;
+      const salon = updatedBooking.salon;
+      const address = `${salon.name}, ${salon.address}, ${salon.city}`;
+      const message = `Hi ${client.fullName}, your booking at ${salon.name} has been CONFIRMED!\n\nAddress: ${address}\n\nWould you like to pay online or in person?`;
+      try {
+        if (client.phone) {
+          await sendSMS({ to: client.phone, body: message });
+          await sendWhatsApp({ to: client.phone, body: message });
+        }
+        if (client.email) {
+          await sendEmail({
+            to: client.email,
+            subject: `Booking Confirmed at ${salon.name}`,
+            text: message,
+            html: `<p>Hi ${client.fullName},</p><p>Your booking at <b>${salon.name}</b> has been <b>CONFIRMED</b>!</p><p><b>Address:</b> ${address}</p><p>Would you like to pay online or in person?</p>`
+          });
+        }
+      } catch (notifyErr) {
+        console.error('Notification error:', notifyErr);
+      }
+    }
 
     return NextResponse.json(
       {
