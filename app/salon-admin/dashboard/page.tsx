@@ -2038,6 +2038,28 @@ export default function SalonAdminDashboard() {
           </div>
         </main>
       </div>
+      {/* Mobile Bottom Menu Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 flex justify-around items-center py-2 lg:hidden shadow">
+        {menuItems.map((item) => (
+          <button
+            key={item.value}
+            onClick={() => setActiveTab(item.value)}
+            className={`flex flex-col items-center justify-center flex-1 px-1 py-1 focus:outline-none ${
+              activeTab === item.value
+                ? "text-slate-900 dark:text-white"
+                : "text-slate-500 dark:text-slate-400"
+            }`}
+          >
+            <item.icon className="w-6 h-6 mb-0.5" />
+            <span className="text-xs">{item.label}</span>
+            {item.count && item.count > 0 && (
+              <span className="text-[10px] bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full px-1.5 ml-1">
+                {item.count}
+              </span>
+            )}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
