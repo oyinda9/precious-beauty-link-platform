@@ -151,6 +151,7 @@ export async function POST(request: NextRequest) {
         ? `Guest: ${clientName || ""} | Email: ${clientEmail || ""} | Phone: ${clientPhone || ""}`
         : null;
 
+
     const bookingData: any = {
       salonId,
       serviceId,
@@ -161,8 +162,11 @@ export async function POST(request: NextRequest) {
       notes: notes ? `${notes}\n${guestInfo}` : guestInfo,
     };
 
+    // Save clientPhone for guest bookings
     if (currentUser && currentUser.role === UserRole.CLIENT) {
       bookingData.clientId = currentUser.userId;
+    } else if (clientPhone) {
+      bookingData.clientPhone = clientPhone;
     }
 
     const booking = await prisma.booking.create({
@@ -174,9 +178,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Format totalPrice as Naira in the response
+    // Format totalPrice as Naira in the response and always include clientPhone
     const bookingWithNaira = {
       ...booking,
+      clientPhone: booking.clientPhone || clientPhone || booking.client?.phone || null,
       totalPriceNaira: `₦${Number(booking.totalPrice).toLocaleString()}`,
     };
     return NextResponse.json(

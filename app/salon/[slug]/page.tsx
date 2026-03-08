@@ -30,6 +30,7 @@ export default function SalonBookingPage() {
   const [bookingDate, setBookingDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -68,8 +69,19 @@ export default function SalonBookingPage() {
     e.preventDefault();
     setMessage(null);
 
-    if (!selectedService || !bookingDate || !startTime) {
-      setMessage({ type: "error", text: "Please fill all required fields." });
+    if (!selectedService || !bookingDate || !startTime || !clientPhone) {
+      setMessage({
+        type: "error",
+        text: "Please fill all required fields, including your phone number.",
+      });
+      return;
+    }
+    // Basic phone validation
+    if (!/^\+?\d{10,15}$/.test(clientPhone)) {
+      setMessage({
+        type: "error",
+        text: "Please enter a valid phone number (10-15 digits, include country code if possible).",
+      });
       return;
     }
 
@@ -85,6 +97,7 @@ export default function SalonBookingPage() {
           bookingDate,
           startTime,
           notes,
+          clientPhone,
         }),
       });
 
@@ -99,6 +112,7 @@ export default function SalonBookingPage() {
         setBookingDate("");
         setStartTime("");
         setNotes("");
+        setClientPhone("");
       } else {
         setMessage({ type: "error", text: data.error || "Booking failed." });
       }
@@ -120,7 +134,7 @@ export default function SalonBookingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">Loading salon details...</p>
@@ -131,7 +145,7 @@ export default function SalonBookingPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">Oops!</h2>
@@ -149,7 +163,7 @@ export default function SalonBookingPage() {
 
   if (!salon) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
           <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -172,16 +186,16 @@ export default function SalonBookingPage() {
   const selectedServiceData = services.find((s) => s.id === selectedService);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 pb-8">
+    <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 pb-8">
       {/* Header Card */}
       <div className="bg-white shadow-lg sticky top-0 z-20 border-b border-purple-100">
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="flex items-start gap-4">
-            <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-4 shadow-lg hidden sm:block">
+            <div className="bg-linear-to-br from-purple-600 to-pink-600 rounded-2xl p-4 shadow-lg hidden sm:block">
               <Scissors className="w-8 h-8 text-white" />
             </div>
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                 {salon.name}
               </h1>
               <p className="text-gray-600 text-sm sm:text-base mt-1">
@@ -189,13 +203,13 @@ export default function SalonBookingPage() {
               </p>
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-6 mt-3 text-sm text-gray-600">
                 <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                  <MapPin className="w-4 h-4 text-purple-500 shrink-0" />
                   <span className="truncate">
                     {salon.address}, {salon.city}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <Phone className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                  <Phone className="w-4 h-4 text-purple-500 shrink-0" />
                   <span>{salon.phone}</span>
                 </div>
               </div>
@@ -208,7 +222,7 @@ export default function SalonBookingPage() {
       <div className="max-w-2xl mx-auto px-4 mt-6">
         <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
           {/* Form Header */}
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
+          <div className="bg-linear-to-r from-purple-600 to-pink-600 px-6 py-4">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
               <Calendar className="w-5 h-5" />
               Book Your Appointment
@@ -225,9 +239,9 @@ export default function SalonBookingPage() {
                 }`}
               >
                 {message.type === "success" ? (
-                  <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 ) : (
-                  <XCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                  <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
                 )}
                 <span className="text-sm sm:text-base">{message.text}</span>
               </div>
@@ -305,7 +319,7 @@ export default function SalonBookingPage() {
                       }`}
                     >
                       <span className="font-medium text-gray-800 block">
-                        {member.user.fullName}
+                        {member.fullName}
                       </span>
                       <span className="text-gray-600 text-sm">
                         {member.specialties.join(" • ") || "All services"}
@@ -353,6 +367,22 @@ export default function SalonBookingPage() {
                 )}
               </div>
 
+              {/* Phone Number */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <Phone className="w-5 h-5 text-purple-600" />
+                  Your Phone Number *
+                </h3>
+                <input
+                  type="tel"
+                  className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
+                  placeholder="e.g. +2348012345678"
+                  value={clientPhone}
+                  onChange={(e) => setClientPhone(e.target.value)}
+                  required
+                />
+              </div>
+
               {/* Notes */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
@@ -370,7 +400,7 @@ export default function SalonBookingPage() {
 
               {/* Summary Card */}
               {selectedServiceData && (
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
+                <div className="bg-linear-to-r from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
                   <h4 className="font-semibold text-gray-800 mb-2">
                     Booking Summary
                   </h4>
@@ -399,7 +429,7 @@ export default function SalonBookingPage() {
               <button
                 type="submit"
                 disabled={false}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition shadow-lg hover:shadow-xl"
+                className="w-full bg-linear-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition shadow-lg hover:shadow-xl"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">

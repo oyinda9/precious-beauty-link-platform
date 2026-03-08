@@ -256,26 +256,34 @@ export async function PUT(
     });
 
     // Send notifications if booking is confirmed
-    if (body.status === BookingStatus.CONFIRMED && updatedBooking.client?.user) {
-      const client = updatedBooking.client.user;
+    if (body.status === BookingStatus.CONFIRMED) {
+      const client = updatedBooking.client;
       const salon = updatedBooking.salon;
       const address = `${salon.name}, ${salon.address}, ${salon.city}`;
-      const message = `Hi ${client.fullName}, your booking at ${salon.name} has been CONFIRMED!\n\nAddress: ${address}\n\nWould you like to pay online or in person?`;
+      // Prefer user phone, fallback to guest phone
+      const clientNumber = client?.phone || updatedBooking.clientPhone;
+      const clientName = client?.fullName || "Guest";
+      const clientEmail = client?.email;
+      const message = `Hi ${clientName}, your booking at ${salon.name} has been CONFIRMED!\n\nAddress: ${address}\n\nWould you like to pay online or in person?`;
       try {
-        if (client.phone) {
-          await sendSMS({ to: client.phone, body: message });
-          await sendWhatsApp({ to: client.phone, body: message });
+        // Send WhatsApp/SMS if phone available
+        if (clientNumber && salon.phone) {
+          await sendWhatsApp({ to: clientNumber, body: message });
         }
-        if (client.email) {
+        // Send email if email available
+        if (clientEmail) {
+          const businessWhatsApp = process.env.BUSINESS_WHATSAPP_NUMBER || "2348012345678";
+          const waMessage = encodeURIComponent(message);
+          const waLink = `https://wa.me/${businessWhatsApp}?text=${waMessage}`;
           await sendEmail({
-            to: client.email,
+            to: clientEmail,
             subject: `Booking Confirmed at ${salon.name}`,
-            text: message,
-            html: `<p>Hi ${client.fullName},</p><p>Your booking at <b>${salon.name}</b> has been <b>CONFIRMED</b>!</p><p><b>Address:</b> ${address}</p><p>Would you like to pay online or in person?</p>`
+            text: `${message}\n\nContact us on WhatsApp: ${waLink}`,
+            html: `<p>Hi ${clientName},</p><p>Your booking at <b>${salon.name}</b> has been <b>CONFIRMED</b>!</p><p><b>Address:</b> ${address}</p><p>Would you like to pay online or in person?</p><p><a href="${waLink}" style="color:#25D366;font-weight:bold;">Chat with us on WhatsApp</a></p>`,
           });
         }
       } catch (notifyErr) {
-        console.error('Notification error:', notifyErr);
+        console.error("Notification error:", notifyErr);
       }
     }
 

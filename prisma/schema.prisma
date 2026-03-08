@@ -1,65 +1,45 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
-// ==================== USERS & AUTH ====================
-
-// User model - supports multiple roles
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String // hashed with bcryptjs
-  fullName  String
-  phone     String?
-  role      UserRole @default(CLIENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  superAdmin       SuperAdmin?
+  id               String      @id @default(cuid())
+  email            String      @unique
+  password         String
+  fullName         String
+  phone            String?
+  role             UserRole    @default(CLIENT)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  bookings         Booking[]
+  client           Client?
+  receivedMessages Message[]   @relation("receiver")
+  sentMessages     Message[]   @relation("sender")
+  reviews          Review[]
   salonAdmin       SalonAdmin?
   salonStaff       SalonStaff?
-  client           Client?
-  bookings         Booking[]
-  reviews          Review[]
-  sentMessages     Message[]   @relation("sender")
-  receivedMessages Message[]   @relation("receiver")
+  superAdmin       SuperAdmin?
 
   @@index([email])
   @@index([role])
 }
 
-enum UserRole {
-  SUPER_ADMIN
-  SALON_ADMIN
-  SALON_STAFF
-  CLIENT
-}
-
-// ==================== SUPER ADMIN ====================
-
 model SuperAdmin {
   id        String   @id @default(cuid())
   userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ==================== SALON STRUCTURE ====================
-
-// Salon model - with unique slug for multi-tenant routing
 model Salon {
   id                 String             @id @default(cuid())
   name               String
-  slug               String             @unique // e.g., "bella-salon" for /salon/bella-salon
+  slug               String             @unique
   description        String?
   address            String
   city               String
@@ -79,21 +59,227 @@ model Salon {
   subscriptionStatus SubscriptionStatus @default(TRIAL)
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
-
-  // Relations
-  admins       SalonAdmin[]
-  staff        SalonStaff[]
-  services     Service[]
-  bookings     Booking[]
-  timeSlots    TimeSlot[]
-  reviews      Review[]
-  messages     Message[]
-  subscription Subscription?
-  revenue      Revenue[]
+  bookings           Booking[]
+  messages           Message[]
+  revenue            Revenue[]
+  reviews            Review[]
+  admins             SalonAdmin[]
+  staff              SalonStaff[]
+  services           Service[]
+  subscription       Subscription?
+  timeSlots          TimeSlot[]
 
   @@index([slug])
   @@index([isActive])
   @@index([subscriptionStatus])
+}
+
+model SalonAdmin {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  salonId   String
+  createdAt DateTime @default(now())
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([salonId])
+}
+
+model SalonStaff {
+  id           String              @id @default(cuid())
+  userId       String              @unique
+  salonId      String
+  specialties  String[]
+  hourlyRate   Float?
+  isActive     Boolean             @default(true)
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  bookings     Booking[]
+  salon        Salon               @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availability StaffAvailability[]
+
+  @@index([salonId])
+  @@index([isActive])
+}
+
+model Service {
+  id          String    @id @default(cuid())
+  salonId     String
+  name        String
+  description String?
+  price       Float
+  duration    Int
+  category    String?
+  image       String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+  salon       Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@index([salonId])
+  @@index([category])
+}
+
+model StaffAvailability {
+  id        String     @id @default(cuid())
+  staffId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean    @default(true)
+  createdAt DateTime   @default(now())
+  staff     SalonStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([staffId])
+}
+
+model Booking {
+  id            String        @id @default(cuid())
+  clientId      String?
+  clientPhone   String?       // For guest bookings, store phone directly
+  salonId       String
+  serviceId     String
+  staffId       String?
+  bookingDate   DateTime
+  startTime     String
+  endTime       String
+  status        BookingStatus @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  notes         String?
+  totalPrice    Float
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  client        User?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  salon         Salon         @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  service       Service       @relation(fields: [serviceId], references: [id])
+  staff         SalonStaff?   @relation(fields: [staffId], references: [id])
+  payment       Payment?
+  review        Review?
+
+  @@index([clientId])
+  @@index([salonId])
+  @@index([staffId])
+  @@index([status])
+  @@index([bookingDate])
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  bookingId       String        @unique
+  amount          Float
+  currency        String        @default("USD")
+  stripePaymentId String?
+  status          PaymentStatus @default(PENDING)
+  paymentMethod   String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+
+  @@index([stripePaymentId])
+}
+
+model Subscription {
+  id                 String             @id @default(cuid())
+  salonId            String             @unique
+  plan               SubscriptionPlan   @default(STARTER)
+  status             SubscriptionStatus @default(TRIAL)
+  stripeCustomerId   String?
+  stripeSubId        String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  trialEndsAt        DateTime?
+  cancelledAt        DateTime?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+  salon              Salon              @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@index([stripeCustomerId])
+}
+
+model Revenue {
+  id            String   @id @default(cuid())
+  salonId       String
+  amount        Float
+  currency      String   @default("USD")
+  month         Int
+  year          Int
+  totalBookings Int      @default(0)
+  totalClients  Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  salon         Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@unique([salonId, month, year])
+  @@index([salonId])
+  @@index([year])
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  salonId   String
+  clientId  String
+  bookingId String   @unique
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@index([salonId])
+  @@index([clientId])
+}
+
+model TimeSlot {
+  id        String   @id @default(cuid())
+  salonId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+
+  @@index([salonId])
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  senderId   String
+  receiverId String
+  salonId    String?
+  content    String
+  isRead     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  receiver   User     @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  salon      Salon?   @relation(fields: [salonId], references: [id])
+  sender     User     @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([senderId])
+  @@index([receiverId])
+  @@index([salonId])
+}
+
+model Client {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  preferredSalons String[]
+  totalSpent      Float    @default(0)
+  totalBookings   Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  SALON_ADMIN
+  SALON_STAFF
+  CLIENT
 }
 
 enum SubscriptionStatus {
@@ -102,111 +288,6 @@ enum SubscriptionStatus {
   PAST_DUE
   CANCELLED
   SUSPENDED
-}
-
-// Salon Admin model
-model SalonAdmin {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  salonId   String
-  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-
-  @@index([salonId])
-}
-
-// Salon Staff model
-model SalonStaff {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  salonId     String
-  salon       Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  specialties String[] // e.g., ["haircut", "coloring", "styling"]
-  hourlyRate  Float?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  bookings     Booking[]
-  availability StaffAvailability[]
-
-  @@index([salonId])
-  @@index([isActive])
-}
-
-// ==================== SERVICES & STAFF ====================
-
-// Service model
-model Service {
-  id          String   @id @default(cuid())
-  salonId     String
-  salon       Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  name        String
-  description String?
-  price       Float
-  duration    Int // in minutes
-  category    String? // e.g., "haircut", "coloring", "styling"
-  image       String?
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  bookings Booking[]
-
-  @@index([salonId])
-  @@index([category])
-}
-
-// Staff Availability
-model StaffAvailability {
-  id        String     @id @default(cuid())
-  staffId   String
-  staff     SalonStaff @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  dayOfWeek Int // 0-6 (Monday-Sunday)
-  startTime String // HH:mm format
-  endTime   String // HH:mm format
-  isActive  Boolean    @default(true)
-  createdAt DateTime   @default(now())
-
-  @@index([staffId])
-}
-
-// ==================== BOOKINGS ====================
-
-// Booking model
-model Booking {
-  id            String        @id @default(cuid())
-  clientId      String?
-  client        User?         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  salonId       String
-  salon         Salon         @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  serviceId     String
-  service       Service       @relation(fields: [serviceId], references: [id])
-  staffId       String?
-  staff         SalonStaff?   @relation(fields: [staffId], references: [id], onDelete: SetNull)
-  bookingDate   DateTime
-  startTime     String // HH:mm format
-  endTime       String // HH:mm format
-  status        BookingStatus @default(PENDING)
-  paymentStatus PaymentStatus @default(PENDING)
-  notes         String?
-  totalPrice    Float
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  // Relations
-  review  Review?
-  payment Payment?
-
-  @@index([clientId])
-  @@index([salonId])
-  @@index([staffId])
-  @@index([status])
-  @@index([bookingDate])
 }
 
 enum BookingStatus {
@@ -224,138 +305,9 @@ enum PaymentStatus {
   REFUNDED
 }
 
-// ==================== PAYMENTS & SUBSCRIPTIONS ====================
-
-// Payment model
-model Payment {
-  id              String        @id @default(cuid())
-  bookingId       String        @unique
-  booking         Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  amount          Float
-  currency        String        @default("USD")
-  stripePaymentId String?
-  status          PaymentStatus @default(PENDING)
-  paymentMethod   String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  @@index([stripePaymentId])
-}
-
-// Subscription model - for tracking salon subscriptions
-model Subscription {
-  id                 String             @id @default(cuid())
-  salonId            String             @unique
-  salon              Salon              @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  plan               SubscriptionPlan   @default(STARTER)
-  status             SubscriptionStatus @default(TRIAL)
-  stripeCustomerId   String?
-  stripeSubId        String?
-  currentPeriodStart DateTime?
-  currentPeriodEnd   DateTime?
-  trialEndsAt        DateTime?
-  cancelledAt        DateTime?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
-
-  @@index([stripeCustomerId])
-}
-
 enum SubscriptionPlan {
   TRIAL
   STARTER
   PROFESSIONAL
   ENTERPRISE
-}
-
-// ==================== REVENUE TRACKING ====================
-
-// Revenue model - for tracking salon revenue
-model Revenue {
-  id            String   @id @default(cuid())
-  salonId       String
-  salon         Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  amount        Float
-  currency      String   @default("USD")
-  month         Int // 1-12
-  year          Int // 2024, 2025, etc.
-  totalBookings Int      @default(0)
-  totalClients  Int      @default(0)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  @@unique([salonId, month, year])
-  @@index([salonId])
-  @@index([year])
-}
-
-// ==================== REVIEWS ====================
-
-// Review model
-model Review {
-  id        String   @id @default(cuid())
-  salonId   String
-  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  clientId  String
-  user      User     @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  bookingId String   @unique
-  booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
-  rating    Int // 1-5
-  comment   String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([salonId])
-  @@index([clientId])
-}
-
-// ==================== BOOKINGS - TIME SLOTS ====================
-
-// TimeSlot model - for managing available time slots
-model TimeSlot {
-  id        String   @id @default(cuid())
-  salonId   String
-  salon     Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
-  dayOfWeek Int // 0-6 (Monday-Sunday)
-  startTime String // HH:mm format
-  endTime   String // HH:mm format
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([salonId])
-}
-
-// ==================== MESSAGING ====================
-
-// Message model - for messaging between clients and salon staff
-model Message {
-  id         String   @id @default(cuid())
-  senderId   String
-  sender     User     @relation("sender", fields: [senderId], references: [id], onDelete: Cascade)
-  receiverId String
-  receiver   User     @relation("receiver", fields: [receiverId], references: [id], onDelete: Cascade)
-  salonId    String?
-  salon      Salon?   @relation(fields: [salonId], references: [id], onDelete: SetNull)
-  content    String
-  isRead     Boolean  @default(false)
-  createdAt  DateTime @default(now())
-
-  @@index([senderId])
-  @@index([receiverId])
-  @@index([salonId])
-}
-
-// ==================== CLIENTS ====================
-
-// Client model - for additional client information
-model Client {
-  id              String   @id @default(cuid())
-  userId          String   @unique
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  preferredSalons String[] // Array of salon IDs
-  totalSpent      Float    @default(0)
-  totalBookings   Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 }

@@ -83,8 +83,9 @@ interface Booking {
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   paymentStatus: string;
   totalPrice: number;
-  client: {
-    user: {
+  clientPhone?: string;
+  client?: {
+    user?: {
       fullName: string;
       email: string;
       phone: string;
@@ -403,7 +404,7 @@ export default function SalonAdminDashboard() {
       setBookings(allBookings);
 
       const uniqueCustomers = new Set(
-        allBookings.map((b: Booking) => b.client?.user?.email),
+        allBookings.map((b: Booking) => b.clientPhone).filter(Boolean),
       ).size;
 
       setStats({
@@ -524,6 +525,25 @@ export default function SalonAdminDashboard() {
         title: "Success",
         description: "Booking status updated successfully!",
       });
+
+      // WhatsApp automation: open WhatsApp with pre-filled message if confirmed
+      if (newStatus === "CONFIRMED" && data.booking) {
+        const clientPhone = data.booking.clientPhone;
+        const salon = data.booking.salon;
+        const service = data.booking.service;
+        
+        if (clientPhone && salon?.name && service?.name) {
+          // Format phone number for WhatsApp
+          let phone = clientPhone.replace(/[^\d]/g, "");
+          if (phone.startsWith("0")) {
+            phone = "234" + phone.slice(1);
+          }
+          
+          const message = `Hello 👋\n\nYour booking at ${salon.name} has been confirmed.\n\nService: ${service.name}\nDate: ${new Date(data.booking.bookingDate).toLocaleDateString()}\nTime: ${data.booking.startTime}\n\nThank you for booking with SalonBook.`;
+          const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+          window.open(url, "_blank");
+        }
+      }
       await fetchDashboardData();
     } catch (err: any) {
       console.error("Status update error:", err);
@@ -547,9 +567,7 @@ export default function SalonAdminDashboard() {
     .filter(
       (b) =>
         searchTerm === "" ||
-        b.client?.user?.fullName
-          ?.toLowerCase()
-          .includes(searchTerm.toLowerCase()) ||
+        b.clientPhone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         b.service.name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
 
@@ -610,6 +628,7 @@ export default function SalonAdminDashboard() {
   };
 
   const getInitials = (name: string) => {
+    if (!name) return "GU";
     return name
       .split(" ")
       .map((n) => n[0])
@@ -644,6 +663,31 @@ export default function SalonAdminDashboard() {
     { icon: CreditCard, label: "Payments", value: "payments" },
     { icon: Settings, label: "Settings", value: "settings" },
   ];
+
+  // WhatsApp message function
+  const sendWhatsAppMessage = (booking: Booking) => {
+    if (!booking.clientPhone) {
+      alert("No client phone number available.");
+      return;
+    }
+
+    // Remove spaces and symbols, keep only digits
+    let phone = booking.clientPhone.replace(/[^\d]/g, "");
+    
+    // Convert Nigerian number to international format if it starts with 0
+    if (phone.startsWith("0")) {
+      phone = "234" + phone.slice(1);
+    }
+
+    const clientName = "Client"; // Default since client may not be registered
+    
+    const message = encodeURIComponent(
+      `Hello ${clientName}, your booking for ${booking.service.name} at ${booking.salon?.name || "the salon"} on ${new Date(booking.bookingDate).toLocaleDateString()} at ${booking.startTime} has been received!`,
+    );
+
+    const url = `https://wa.me/${phone}?text=${message}`;
+    window.open(url, "_blank");
+  };
 
   if (loading) {
     return (
@@ -1042,14 +1086,12 @@ export default function SalonAdminDashboard() {
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
                               <AvatarFallback className="bg-slate-200 dark:bg-slate-600 text-xs">
-                                {getInitials(
-                                  booking.client?.user?.fullName || "UN",
-                                )}
+                                {getInitials("Guest")}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="text-sm font-medium text-slate-800 dark:text-white">
-                                {booking.client?.user?.fullName || "Unknown"}
+                                Guest Client
                               </p>
                               <p className="text-xs text-slate-500 dark:text-slate-400">
                                 {booking.service.name} •{" "}
@@ -1057,6 +1099,11 @@ export default function SalonAdminDashboard() {
                                   booking.bookingDate,
                                 ).toLocaleDateString()}
                               </p>
+                              {booking.clientPhone && (
+                                <p className="text-xs text-slate-400 mt-1">
+                                  📞 {booking.clientPhone}
+                                </p>
+                              )}
                             </div>
                           </div>
                           <Badge className={getStatusColor(booking.status)}>
@@ -1162,19 +1209,24 @@ export default function SalonAdminDashboard() {
                               <div className="flex items-center gap-3">
                                 <Avatar>
                                   <AvatarFallback className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300">
-                                    {getInitials(
-                                      booking.client?.user?.fullName ||
-                                        "Unknown",
-                                    )}
+                                    {getInitials("Guest")}
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
                                   <p className="font-semibold text-slate-800 dark:text-white">
-                                    {booking.client?.user?.fullName ||
-                                      "Unknown Client"}
+                                    Guest Client
                                   </p>
                                   <p className="text-xs text-slate-500 dark:text-slate-400">
                                     {booking.service.name}
+                                  </p>
+                                  <p className="text-xs text-slate-400 mt-1">
+                                    {booking.clientPhone ? (
+                                      `📞 ${booking.clientPhone}`
+                                    ) : (
+                                      <span className="text-rose-500">
+                                        No phone
+                                      </span>
+                                    )}
                                   </p>
                                 </div>
                               </div>
@@ -1214,31 +1266,45 @@ export default function SalonAdminDashboard() {
                                   ₦{booking.totalPrice.toLocaleString()}
                                 </p>
                               </div>
-                              <Select
-                                value={booking.status}
-                                onValueChange={(val) =>
-                                  handleStatusChange(booking.id, val)
-                                }
-                                disabled={false}
-                              >
-                                <SelectTrigger className="w-32 h-9">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="PENDING">
-                                    Pending
-                                  </SelectItem>
-                                  <SelectItem value="CONFIRMED">
-                                    Confirmed
-                                  </SelectItem>
-                                  <SelectItem value="COMPLETED">
-                                    Completed
-                                  </SelectItem>
-                                  <SelectItem value="CANCELLED">
-                                    Cancelled
-                                  </SelectItem>
-                                </SelectContent>
-                              </Select>
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={booking.status}
+                                  onValueChange={(val) =>
+                                    handleStatusChange(booking.id, val)
+                                  }
+                                  disabled={false}
+                                >
+                                  <SelectTrigger className="w-32 h-9">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="PENDING">
+                                      Pending
+                                    </SelectItem>
+                                    <SelectItem value="CONFIRMED">
+                                      Confirmed
+                                    </SelectItem>
+                                    <SelectItem value="COMPLETED">
+                                      Completed
+                                    </SelectItem>
+                                    <SelectItem value="CANCELLED">
+                                      Cancelled
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                {/* WhatsApp Button */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => sendWhatsAppMessage(booking)}
+                                  className="border-green-200 text-green-600 hover:bg-green-50"
+                                >
+                                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
+                                  </svg>
+                                  WhatsApp
+                                </Button>
+                              </div>
                             </div>
                           </CardContent>
                         </Card>
@@ -1291,20 +1357,24 @@ export default function SalonAdminDashboard() {
                                 <div className="flex items-center gap-3">
                                   <Avatar>
                                     <AvatarFallback className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300">
-                                      {getInitials(
-                                        booking.client?.user?.fullName ||
-                                          "Unknown",
-                                      )}
+                                      {getInitials("Guest")}
                                     </AvatarFallback>
                                   </Avatar>
                                   <div>
                                     <p className="font-medium text-slate-800 dark:text-white">
-                                      {booking.client?.user?.fullName ||
-                                        "Unknown Client"}
+                                      Guest Client
                                     </p>
                                     <p className="text-xs text-slate-500 dark:text-slate-400">
-                                      {booking.client?.user?.email ||
-                                        "No email"}
+                                      No email
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                      {booking.clientPhone ? (
+                                        `📞 ${booking.clientPhone}`
+                                      ) : (
+                                        <span className="text-rose-500">
+                                          No phone
+                                        </span>
+                                      )}
                                     </p>
                                   </div>
                                 </div>
@@ -1375,6 +1445,18 @@ export default function SalonAdminDashboard() {
                                       </SelectItem>
                                     </SelectContent>
                                   </Select>
+                                  {/* WhatsApp Button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => sendWhatsAppMessage(booking)}
+                                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  >
+                                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                      <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
+                                    </svg>
+                                    WhatsApp
+                                  </Button>
                                   <Button
                                     variant="ghost"
                                     size="icon"
