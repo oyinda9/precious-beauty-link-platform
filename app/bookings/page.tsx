@@ -1,11 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-// Utility to detect iPhone
-function isIphone() {
-  if (typeof navigator === "undefined") return false;
-  return /iPhone/.test(navigator.userAgent);
-}
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -144,7 +139,7 @@ export default function ClientBookingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your bookings...</p>
@@ -154,7 +149,7 @@ export default function ClientBookingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       {/* Mobile Header */}
       {/* Mobile Header + Slide Menu */}
       <div className="lg:hidden bg-white border-b border-purple-100 sticky top-0 z-40 flex items-center justify-between px-4 py-3">
@@ -166,7 +161,7 @@ export default function ClientBookingsPage() {
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="bg-linear-to-r from-purple-600 to-pink-600 rounded-lg p-2">
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-2">
             <CalendarDays className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -225,11 +220,11 @@ export default function ClientBookingsPage() {
         <div className="max-w-6xl mx-auto px-6 py-6">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
-              <div className="bg-linear-to-r from-purple-600 to-pink-600 rounded-2xl p-4">
+              <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl p-4">
                 <CalendarDays className="w-8 h-8 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   My Bookings
                 </h1>
                 <p className="text-gray-600 text-sm mt-1">
@@ -261,7 +256,7 @@ export default function ClientBookingsPage() {
       <div className="max-w-6xl mx-auto px-4 lg:px-6 py-6 lg:py-8">
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 shrink-0" />
+            <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <div>
               <p className="font-semibold">Error loading bookings</p>
               <p className="text-sm mt-1">{error}</p>
@@ -272,7 +267,7 @@ export default function ClientBookingsPage() {
         {bookings.length === 0 ? (
           <Card className="text-center py-12 border-2 border-purple-100">
             <CardContent>
-              <div className="bg-linear-to-r from-purple-100 to-pink-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
+              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-full w-24 h-24 flex items-center justify-center mx-auto mb-6">
                 <CalendarDays size={48} className="text-purple-600" />
               </div>
               <h2 className="text-2xl font-bold text-gray-800 mb-2">
@@ -284,7 +279,7 @@ export default function ClientBookingsPage() {
               </p>
               <Button
                 onClick={() => router.push("/")}
-                className="bg-linear-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2"
+                className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2"
               >
                 Browse Salons <ArrowRight size={16} />
               </Button>
@@ -316,7 +311,7 @@ export default function ClientBookingsPage() {
                     onClick={() => setFilterStatus(status)}
                     className={`rounded-full ${
                       filterStatus === status
-                        ? "bg-linear-to-r from-purple-600 to-pink-600 text-white"
+                        ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
                         : "border-purple-200 hover:border-purple-300"
                     }`}
                   >
@@ -390,12 +385,11 @@ export default function ClientBookingsPage() {
                             <div className="flex items-center gap-2 mt-1">
                               <Scissors className="w-4 h-4 text-purple-500" />
                               <p className="text-sm text-gray-600">
-                                {booking.service.name} •{" "}
-                                {booking.service.duration} mins
+                                {booking.service.name} • {booking.service.duration} mins
                               </p>
                             </div>
                             <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
-                              <MapPin className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                              <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
                               <span className="text-sm">
                                 {booking.salon.address}, {booking.salon.city}
                               </span>
@@ -403,54 +397,28 @@ export default function ClientBookingsPage() {
                           </div>
 
                           {/* Date & Time */}
-                          {/* Date & Time: Stack vertically for iPhones, horizontally for others */}
-                          {typeof window !== "undefined" && isIphone() ? (
-                            <div className="flex flex-col gap-3 w-full">
-                              <div className="w-full bg-purple-50 rounded-lg p-3 flex flex-col items-start">
-                                <Calendar className="w-4 h-4 text-purple-600 mb-1" />
-                                <p className="text-xs text-gray-600">Date</p>
-                                <p className="font-medium text-sm">
-                                  {new Date(
-                                    booking.bookingDate,
-                                  ).toLocaleDateString("en-US", {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </p>
-                              </div>
-                              <div className="w-full bg-pink-50 rounded-lg p-3 flex flex-col items-start">
-                                <Clock className="w-4 h-4 text-pink-600 mb-1" />
-                                <p className="text-xs text-gray-600">Time</p>
-                                <p className="font-medium text-sm">
-                                  {formatTime(booking.startTime)}
-                                </p>
-                              </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-purple-50 rounded-lg p-3 flex flex-col items-start">
+                              <Calendar className="w-4 h-4 text-purple-600 mb-1" />
+                              <p className="text-xs text-gray-600">Date</p>
+                              <p className="font-medium text-sm">
+                                {new Date(
+                                  booking.bookingDate,
+                                ).toLocaleDateString("en-US", {
+                                  weekday: "short",
+                                  month: "short",
+                                  day: "numeric",
+                                })}
+                              </p>
                             </div>
-                          ) : (
-                            <div className="flex flex-row gap-3 w-full">
-                              <div className="flex-1 bg-purple-50 rounded-lg p-3 flex flex-col items-start">
-                                <Calendar className="w-4 h-4 text-purple-600 mb-1" />
-                                <p className="text-xs text-gray-600">Date</p>
-                                <p className="font-medium text-sm">
-                                  {new Date(
-                                    booking.bookingDate,
-                                  ).toLocaleDateString("en-US", {
-                                    weekday: "short",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </p>
-                              </div>
-                              <div className="flex-1 bg-pink-50 rounded-lg p-3 flex flex-col items-start">
-                                <Clock className="w-4 h-4 text-pink-600 mb-1" />
-                                <p className="text-xs text-gray-600">Time</p>
-                                <p className="font-medium text-sm">
-                                  {formatTime(booking.startTime)}
-                                </p>
-                              </div>
+                            <div className="bg-pink-50 rounded-lg p-3 flex flex-col items-start">
+                              <Clock className="w-4 h-4 text-pink-600 mb-1" />
+                              <p className="text-xs text-gray-600">Time</p>
+                              <p className="font-medium text-sm">
+                                {formatTime(booking.startTime)}
+                              </p>
                             </div>
-                          )}
+                          </div>
 
                           {/* Notes */}
                           {booking.notes && (
@@ -489,7 +457,7 @@ export default function ClientBookingsPage() {
                           {/* Salon & Service - 5 columns */}
                           <div className="col-span-5">
                             <div className="flex items-start gap-3">
-                              <div className="bg-linear-to-r from-purple-100 to-pink-100 rounded-xl p-3">
+                              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-3">
                                 <Scissors className="w-6 h-6 text-purple-600" />
                               </div>
                               <div>
@@ -503,7 +471,7 @@ export default function ClientBookingsPage() {
                                   Duration: {booking.service.duration} mins
                                 </p>
                                 <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
-                                  <MapPin className="w-4 h-4 text-purple-500 shrink-0 mt-0.5" />
+                                  <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
                                   <span>
                                     {booking.salon.address},{" "}
                                     {booking.salon.city}
@@ -591,7 +559,7 @@ export default function ClientBookingsPage() {
             <div className="lg:hidden fixed bottom-6 left-4 right-4">
               <Button
                 onClick={() => router.push("/")}
-                className="w-full bg-linear-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2 shadow-lg"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2 shadow-lg"
               >
                 Book More Appointments <ArrowRight size={16} />
               </Button>
