@@ -531,14 +531,14 @@ export default function SalonAdminDashboard() {
         const clientPhone = data.booking.clientPhone;
         const salon = data.booking.salon;
         const service = data.booking.service;
-        
+
         if (clientPhone && salon?.name && service?.name) {
           // Format phone number for WhatsApp
           let phone = clientPhone.replace(/[^\d]/g, "");
           if (phone.startsWith("0")) {
             phone = "234" + phone.slice(1);
           }
-          
+
           const message = `Hello 👋\n\nYour booking at ${salon.name} has been confirmed.\n\nService: ${service.name}\nDate: ${new Date(data.booking.bookingDate).toLocaleDateString()}\nTime: ${data.booking.startTime}\n\nThank you for booking with SalonBook.`;
           const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
           window.open(url, "_blank");
@@ -673,14 +673,14 @@ export default function SalonAdminDashboard() {
 
     // Remove spaces and symbols, keep only digits
     let phone = booking.clientPhone.replace(/[^\d]/g, "");
-    
+
     // Convert Nigerian number to international format if it starts with 0
     if (phone.startsWith("0")) {
       phone = "234" + phone.slice(1);
     }
 
     const clientName = "Client"; // Default since client may not be registered
-    
+
     const message = encodeURIComponent(
       `Hello ${clientName}, your booking for ${booking.service.name} at ${booking.salon?.name || "the salon"} on ${new Date(booking.bookingDate).toLocaleDateString()} at ${booking.startTime} has been received!`,
     );
@@ -990,7 +990,8 @@ export default function SalonAdminDashboard() {
             {/* Dashboard Stats */}
             {activeTab === "dashboard" && (
               <>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                {/* Responsive: 1 column on mobile, 2 on sm, 4 on lg */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-medium text-slate-600 dark:text-slate-400 flex items-center justify-between">
@@ -1061,27 +1062,28 @@ export default function SalonAdminDashboard() {
                   </Card>
                 </div>
 
-                {/* Recent Bookings */}
+                {/* Recent Bookings - Responsive */}
                 <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
-                  <CardHeader className="p-6">
-                    <div className="flex items-center justify-between">
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                       <CardTitle className="text-lg">Recent Bookings</CardTitle>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setActiveTab("bookings")}
+                        className="w-full sm:w-auto"
                       >
                         View All
                         <ChevronRight className="w-4 h-4 ml-1" />
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="p-6 pt-0">
+                  <CardContent className="p-2 sm:p-6 pt-0">
                     <div className="space-y-3">
                       {bookings.slice(0, 5).map((booking) => (
                         <div
                           key={booking.id}
-                          className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-slate-50 dark:bg-slate-700/50 rounded-lg gap-2"
                         >
                           <div className="flex items-center gap-3">
                             <Avatar className="h-8 w-8">
@@ -1179,8 +1181,8 @@ export default function SalonAdminDashboard() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-6 pt-0">
-                  {/* Mobile Booking Cards */}
+                <CardContent className="p-2 sm:p-6 pt-0">
+                  {/* Mobile Booking Cards - Improved for phone */}
                   <div className="lg:hidden space-y-4">
                     {displayBookings.length === 0 ? (
                       <div className="text-center py-12">
@@ -1191,7 +1193,7 @@ export default function SalonAdminDashboard() {
                       displayBookings.map((booking) => (
                         <Card
                           key={booking.id}
-                          className="overflow-hidden border-0 shadow-sm"
+                          className="overflow-hidden border-0 shadow-sm w-full"
                         >
                           <div
                             className={`h-1 w-full ${
@@ -1204,8 +1206,8 @@ export default function SalonAdminDashboard() {
                                     : "bg-rose-500"
                             }`}
                           />
-                          <CardContent className="p-4">
-                            <div className="flex items-start justify-between mb-3">
+                          <CardContent className="p-3 sm:p-4">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-3">
                               <div className="flex items-center gap-3">
                                 <Avatar>
                                   <AvatarFallback className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300">
@@ -1213,10 +1215,10 @@ export default function SalonAdminDashboard() {
                                   </AvatarFallback>
                                 </Avatar>
                                 <div>
-                                  <p className="font-semibold text-slate-800 dark:text-white">
+                                  <p className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">
                                     Guest Client
                                   </p>
-                                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                                  <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
                                     {booking.service.name}
                                   </p>
                                   <p className="text-xs text-slate-400 mt-1">
@@ -1231,14 +1233,14 @@ export default function SalonAdminDashboard() {
                                 </div>
                               </div>
                               <Badge
-                                className={`${getStatusColor(booking.status)} flex items-center gap-1`}
+                                className={`${getStatusColor(booking.status)} flex items-center gap-1 w-fit px-3 py-1 mt-2 sm:mt-0`}
                               >
                                 {getStatusIcon(booking.status)}
                                 {booking.status}
                               </Badge>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
                               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
                                 <Calendar className="w-4 h-4 text-slate-600 mb-1" />
                                 <p className="text-xs text-slate-500">Date</p>
@@ -1257,7 +1259,7 @@ export default function SalonAdminDashboard() {
                               </div>
                             </div>
 
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700">
+                            <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 gap-2">
                               <div>
                                 <p className="text-xs text-slate-500">
                                   Total Amount
@@ -1266,7 +1268,7 @@ export default function SalonAdminDashboard() {
                                   ₦{booking.totalPrice.toLocaleString()}
                                 </p>
                               </div>
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-col gap-2 w-full xs:flex-row xs:items-center xs:w-auto">
                                 <Select
                                   value={booking.status}
                                   onValueChange={(val) =>
@@ -1274,7 +1276,7 @@ export default function SalonAdminDashboard() {
                                   }
                                   disabled={false}
                                 >
-                                  <SelectTrigger className="w-32 h-9">
+                                  <SelectTrigger className="w-full xs:w-32 h-9 mb-2 xs:mb-0">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1292,14 +1294,20 @@ export default function SalonAdminDashboard() {
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
-                                {/* WhatsApp Button */}
+                                {/* WhatsApp Button - prominent and full width on mobile */}
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => sendWhatsAppMessage(booking)}
-                                  className="border-green-200 text-green-600 hover:bg-green-50"
+                                  className="rounded-full border-green-500 text-green-700 bg-white hover:bg-green-50 w-full xs:w-auto flex items-center justify-center gap-2 px-4 py-2"
+                                  style={{ minHeight: 0, fontWeight: 600, fontSize: '1rem' }}
+                                  aria-label="Contact on WhatsApp"
                                 >
-                                  <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                  <svg
+                                    className="w-5 h-5 mr-1"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                  >
                                     <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
                                   </svg>
                                   WhatsApp
@@ -1452,7 +1460,11 @@ export default function SalonAdminDashboard() {
                                     onClick={() => sendWhatsAppMessage(booking)}
                                     className="text-green-600 hover:text-green-700 hover:bg-green-50"
                                   >
-                                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                                    <svg
+                                      className="w-4 h-4 mr-2"
+                                      viewBox="0 0 24 24"
+                                      fill="currentColor"
+                                    >
                                       <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
                                     </svg>
                                     WhatsApp
@@ -1522,7 +1534,7 @@ export default function SalonAdminDashboard() {
                   </div>
                 </CardHeader>
 
-                <CardContent className="p-6 pt-0">
+                <CardContent className="p-2 sm:p-6 pt-0">
                   {loadingServices && (
                     <div className="text-center py-12">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-600 mx-auto"></div>
@@ -1537,10 +1549,11 @@ export default function SalonAdminDashboard() {
                     </div>
                   )}
 
+                  {/* Responsive: stack on mobile, 2 columns on lg */}
                   {!loadingServices && (
-                    <div className="grid lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {showServiceForm && (
-                        <Card className="border border-slate-200 dark:border-slate-700 shadow-sm">
+                        <Card className="border border-slate-200 dark:border-slate-700 shadow-sm mb-4 lg:mb-0">
                           <CardHeader className="bg-slate-50 dark:bg-slate-700/50">
                             <div className="flex items-center justify-between">
                               <CardTitle className="text-base">
@@ -1700,7 +1713,7 @@ export default function SalonAdminDashboard() {
                         </h3>
 
                         {servicesList.length === 0 && !loadingServices ? (
-                          <div className="text-center py-12 bg-slate-50 dark:bg-slate-700/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+                          <div className="text-center py-8 sm:py-12 bg-slate-50 dark:bg-slate-700/50 rounded-xl border-2 border-dashed border-slate-200 dark:border-slate-700">
                             <Scissors className="w-12 h-12 text-slate-400 mx-auto mb-3" />
                             <p className="text-slate-500">No services yet</p>
                             <Button
@@ -1718,11 +1731,11 @@ export default function SalonAdminDashboard() {
                                 key={service.id}
                                 className="border border-slate-200 dark:border-slate-700 hover:shadow-sm transition-all"
                               >
-                                <CardContent className="p-4">
-                                  <div className="flex items-start justify-between">
+                                <CardContent className="p-3 sm:p-4">
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                                     <div className="flex-1">
                                       <div className="flex items-center gap-2 mb-2">
-                                        <h4 className="font-semibold text-slate-800 dark:text-white">
+                                        <h4 className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">
                                           {service.name}
                                         </h4>
                                         <Badge className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-0">
@@ -1749,7 +1762,7 @@ export default function SalonAdminDashboard() {
                                       </div>
                                     </div>
 
-                                    <div className="flex gap-2 ml-4">
+                                    <div className="flex gap-2 mt-2 sm:mt-0 ml-0 sm:ml-4">
                                       <Button
                                         size="sm"
                                         variant="outline"
