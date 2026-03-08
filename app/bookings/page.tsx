@@ -398,8 +398,8 @@ export default function ClientBookingsPage() {
                           </div>
 
                           {/* Date & Time */}
-                          <div className="flex flex-col xs:flex-row gap-3">
-                            <div className="flex-1 bg-purple-50 rounded-lg p-3 flex flex-col items-start mb-2 xs:mb-0">
+                          <div className="flex flex-col sm:flex-row gap-3 w-full">
+                            <div className="w-full sm:w-1/2 bg-purple-50 rounded-lg p-3 flex flex-col items-start mb-2 sm:mb-0">
                               <Calendar className="w-4 h-4 text-purple-600 mb-1" />
                               <p className="text-xs text-gray-600">Date</p>
                               <p className="font-medium text-sm">
@@ -412,7 +412,7 @@ export default function ClientBookingsPage() {
                                 })}
                               </p>
                             </div>
-                            <div className="flex-1 bg-pink-50 rounded-lg p-3 flex flex-col items-start">
+                            <div className="w-full sm:w-1/2 bg-pink-50 rounded-lg p-3 flex flex-col items-start">
                               <Clock className="w-4 h-4 text-pink-600 mb-1" />
                               <p className="text-xs text-gray-600">Time</p>
                               <p className="font-medium text-sm">
