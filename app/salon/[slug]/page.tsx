@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 // Utility to detect iPhone
@@ -37,10 +38,7 @@ export default function SalonBookingPage() {
   const [notes, setNotes] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [message, setMessage] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
+  // Remove message state, use toast instead
 
   useEffect(() => {
     async function fetchData() {
@@ -72,20 +70,23 @@ export default function SalonBookingPage() {
 
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMessage(null);
 
     if (!selectedService || !bookingDate || !startTime || !clientPhone) {
-      setMessage({
-        type: "error",
-        text: "Please fill all required fields, including your phone number.",
+      toast({
+        title: "Missing Fields",
+        description:
+          "Please fill all required fields, including your phone number.",
+        variant: "destructive",
       });
       return;
     }
     // Basic phone validation
     if (!/^\+?\d{10,15}$/.test(clientPhone)) {
-      setMessage({
-        type: "error",
-        text: "Please enter a valid phone number (10-15 digits, include country code if possible).",
+      toast({
+        title: "Invalid Phone Number",
+        description:
+          "Please enter a valid phone number (10-15 digits, include country code if possible).",
+        variant: "destructive",
       });
       return;
     }
@@ -108,9 +109,10 @@ export default function SalonBookingPage() {
 
       const data = await res.json();
       if (res.ok) {
-        setMessage({
-          type: "success",
-          text: `Booking confirmed! Ref: ${data.booking.id}`,
+        toast({
+          title: "Booking Confirmed!",
+          description: `Your booking was successful. Ref: ${data.booking.id}`,
+          variant: "default",
         });
         setSelectedService(null);
         setSelectedStaff(null);
@@ -119,10 +121,18 @@ export default function SalonBookingPage() {
         setNotes("");
         setClientPhone("");
       } else {
-        setMessage({ type: "error", text: data.error || "Booking failed." });
+        toast({
+          title: "Booking Failed",
+          description: data.error || "Booking failed.",
+          variant: "destructive",
+        });
       }
     } catch (err: any) {
-      setMessage({ type: "error", text: err.message });
+      toast({
+        title: "Booking Error",
+        description: err.message,
+        variant: "destructive",
+      });
     } finally {
       setSubmitting(false);
     }
@@ -235,23 +245,6 @@ export default function SalonBookingPage() {
           </div>
 
           <div className="p-4 sm:p-6">
-            {message && (
-              <div
-                className={`p-4 rounded-xl mb-6 flex items-start gap-3 ${
-                  message.type === "success"
-                    ? "bg-green-50 text-green-700 border border-green-200"
-                    : "bg-red-50 text-red-700 border border-red-200"
-                }`}
-              >
-                {message.type === "success" ? (
-                  <CheckCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                ) : (
-                  <XCircle className="w-5 h-5 shrink-0 mt-0.5" />
-                )}
-                <span className="text-sm sm:text-base">{message.text}</span>
-              </div>
-            )}
-
             <form onSubmit={handleBooking} className="space-y-8">
               {/* Services Section */}
               <div>
@@ -335,56 +328,56 @@ export default function SalonBookingPage() {
               </div>
 
               {/* Date & Time */}
-<div>
-  <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
-    <Calendar className="w-5 h-5 text-purple-600" />
-    Select Date & Time *
-  </h3>
-  
-  {/* Date & Time Inputs - Fixed for all devices */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    <div className="w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Date
-      </label>
-      <input
-        type="date"
-        value={bookingDate}
-        onChange={(e) => setBookingDate(e.target.value)}
-        min={new Date().toISOString().split("T")[0]}
-        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition bg-white text-gray-800"
-        style={{
-          WebkitAppearance: 'none',
-          MozAppearance: 'none',
-          appearance: 'none',
-        }}
-      />
-    </div>
-    
-    <div className="w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-2">
-        Time
-      </label>
-      <input
-        type="time"
-        value={startTime}
-        onChange={(e) => setStartTime(e.target.value)}
-        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition bg-white text-gray-800"
-        style={{
-          WebkitAppearance: 'none',
-          MozAppearance: 'none',
-          appearance: 'none',
-        }}
-      />
-    </div>
-  </div>
-  
-  {startTime && (
-    <p className="mt-3 text-sm text-purple-600">
-      Selected time: {formatTime(startTime)}
-    </p>
-  )}
-</div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-purple-600" />
+                  Select Date & Time *
+                </h3>
+
+                {/* Date & Time Inputs - Fixed for all devices */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Date
+                    </label>
+                    <input
+                      type="date"
+                      value={bookingDate}
+                      onChange={(e) => setBookingDate(e.target.value)}
+                      min={new Date().toISOString().split("T")[0]}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition bg-white text-gray-800"
+                      style={{
+                        WebkitAppearance: "none",
+                        MozAppearance: "none",
+                        appearance: "none",
+                      }}
+                    />
+                  </div>
+
+                  <div className="w-full">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Time
+                    </label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition bg-white text-gray-800"
+                      style={{
+                        WebkitAppearance: "none",
+                        MozAppearance: "none",
+                        appearance: "none",
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {startTime && (
+                  <p className="mt-3 text-sm text-purple-600">
+                    Selected time: {formatTime(startTime)}
+                  </p>
+                )}
+              </div>
 
               {/* Phone Number */}
               <div>
