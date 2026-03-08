@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+// Utility to detect iPhone
+function isIphone() {
+  if (typeof navigator === "undefined") return false;
+  return /iPhone/.test(navigator.userAgent);
+}
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -398,28 +403,54 @@ export default function ClientBookingsPage() {
                           </div>
 
                           {/* Date & Time */}
-                          <div className="flex flex-col sm:flex-row gap-3 w-full">
-                            <div className="w-full sm:w-1/2 bg-purple-50 rounded-lg p-3 flex flex-col items-start mb-2 sm:mb-0">
-                              <Calendar className="w-4 h-4 text-purple-600 mb-1" />
-                              <p className="text-xs text-gray-600">Date</p>
-                              <p className="font-medium text-sm">
-                                {new Date(
-                                  booking.bookingDate,
-                                ).toLocaleDateString("en-US", {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                })}
-                              </p>
+                          {/* Date & Time: Stack vertically for iPhones, horizontally for others */}
+                          {typeof window !== "undefined" && isIphone() ? (
+                            <div className="flex flex-col gap-3 w-full">
+                              <div className="w-full bg-purple-50 rounded-lg p-3 flex flex-col items-start">
+                                <Calendar className="w-4 h-4 text-purple-600 mb-1" />
+                                <p className="text-xs text-gray-600">Date</p>
+                                <p className="font-medium text-sm">
+                                  {new Date(
+                                    booking.bookingDate,
+                                  ).toLocaleDateString("en-US", {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </p>
+                              </div>
+                              <div className="w-full bg-pink-50 rounded-lg p-3 flex flex-col items-start">
+                                <Clock className="w-4 h-4 text-pink-600 mb-1" />
+                                <p className="text-xs text-gray-600">Time</p>
+                                <p className="font-medium text-sm">
+                                  {formatTime(booking.startTime)}
+                                </p>
+                              </div>
                             </div>
-                            <div className="w-full sm:w-1/2 bg-pink-50 rounded-lg p-3 flex flex-col items-start">
-                              <Clock className="w-4 h-4 text-pink-600 mb-1" />
-                              <p className="text-xs text-gray-600">Time</p>
-                              <p className="font-medium text-sm">
-                                {formatTime(booking.startTime)}
-                              </p>
+                          ) : (
+                            <div className="flex flex-row gap-3 w-full">
+                              <div className="flex-1 bg-purple-50 rounded-lg p-3 flex flex-col items-start">
+                                <Calendar className="w-4 h-4 text-purple-600 mb-1" />
+                                <p className="text-xs text-gray-600">Date</p>
+                                <p className="font-medium text-sm">
+                                  {new Date(
+                                    booking.bookingDate,
+                                  ).toLocaleDateString("en-US", {
+                                    weekday: "short",
+                                    month: "short",
+                                    day: "numeric",
+                                  })}
+                                </p>
+                              </div>
+                              <div className="flex-1 bg-pink-50 rounded-lg p-3 flex flex-col items-start">
+                                <Clock className="w-4 h-4 text-pink-600 mb-1" />
+                                <p className="text-xs text-gray-600">Time</p>
+                                <p className="font-medium text-sm">
+                                  {formatTime(booking.startTime)}
+                                </p>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           {/* Notes */}
                           {booking.notes && (
