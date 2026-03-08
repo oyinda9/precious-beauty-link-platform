@@ -340,60 +340,62 @@ export default function SalonBookingPage() {
                   <Calendar className="w-5 h-5 text-purple-600" />
                   Select Date & Time *
                 </h3>
-                {/* Date & Time: Stack vertically for iPhones, side-by-side for others */}
-                {typeof window !== "undefined" && isIphone() ? (
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Date
-                      </label>
-                      <input
-                        type="date"
-                        value={bookingDate}
-                        onChange={(e) => setBookingDate(e.target.value)}
-                        min={new Date().toISOString().split("T")[0]}
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
-                      />
+                {/* Date & Time: Responsive width, stack for iPhones, side-by-side for others */}
+                <div className="max-w-sm mx-auto w-full">
+                  {typeof window !== "undefined" && isIphone() ? (
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={bookingDate}
+                          onChange={(e) => setBookingDate(e.target.value)}
+                          min={new Date().toISOString().split("T")[0]}
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Time
+                        </label>
+                        <input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Time
-                      </label>
-                      <input
-                        type="time"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
-                      />
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date
+                        </label>
+                        <input
+                          type="date"
+                          value={bookingDate}
+                          onChange={(e) => setBookingDate(e.target.value)}
+                          min={new Date().toISOString().split("T")[0]}
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Time
+                        </label>
+                        <input
+                          type="time"
+                          value={startTime}
+                          onChange={(e) => setStartTime(e.target.value)}
+                          className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Date
-                      </label>
-                      <input
-                        type="date"
-                        value={bookingDate}
-                        onChange={(e) => setBookingDate(e.target.value)}
-                        min={new Date().toISOString().split("T")[0]}
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Time
-                      </label>
-                      <input
-                        type="time"
-                        value={startTime}
-                        onChange={(e) => setStartTime(e.target.value)}
-                        className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
-                      />
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
                 {startTime && (
                   <p className="mt-2 text-sm text-purple-600">
                     Selected time: {formatTime(startTime)}
