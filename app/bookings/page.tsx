@@ -37,7 +37,7 @@ interface ClientBooking {
   };
   service: {
     id: string;
-    name: string;
+    name: string; 
     duration: number;
   };
 }

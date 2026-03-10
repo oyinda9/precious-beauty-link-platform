@@ -5,9 +5,12 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log("🌱 Starting database seed...");
+  console.log("DATABASE_URL:", process.env.DATABASE_URL);
+  const usersBefore = await prisma.user.findMany();
+  console.log("Users in DB before seeding:", usersBefore);
 
   try {
-    // Create super admin user
+    // Create super admin user 1
     const superAdminPassword = await hashPassword("password123");
     const superAdminUser = await prisma.user.create({
       data: {
@@ -25,7 +28,25 @@ async function main() {
       },
     });
 
-    console.log("✅ Super admin user created");
+    // Create super admin user 2 (for troubleshooting)
+    const superAdmin2Password = await hashPassword("admin456!");
+    const superAdminUser2 = await prisma.user.create({
+      data: {
+        email: "super2@salon.com",
+        password: superAdmin2Password,
+        fullName: "Backup Super Admin",
+        phone: "+1234567899",
+        role: UserRole.SUPER_ADMIN,
+      },
+    });
+
+    await prisma.superAdmin.create({
+      data: {
+        userId: superAdminUser2.id,
+      },
+    });
+
+    console.log("✅ Super admin users created");
 
     // Create salon admin user
     const adminPassword = await hashPassword("password123");
@@ -324,6 +345,8 @@ async function main() {
 
     console.log("✅ Subscriptions created");
 
+    const usersAfter = await prisma.user.findMany();
+    console.log("Users in DB after seeding:", usersAfter);
     console.log("✨ Database seed completed successfully!");
   } catch (error) {
     console.error("❌ Error seeding database:", error);
