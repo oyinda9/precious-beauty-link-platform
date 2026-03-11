@@ -1,3 +1,12 @@
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  token     String   @unique
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,22 +17,23 @@ datasource db {
 }
 
 model User {
-  id               String      @id @default(cuid())
-  email            String      @unique
-  password         String
-  fullName         String
-  phone            String?
-  role             UserRole    @default(CLIENT)
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
-  bookings         Booking[]
-  client           Client?
-  receivedMessages Message[]   @relation("receiver")
-  sentMessages     Message[]   @relation("sender")
-  reviews          Review[]
-  salonAdmin       SalonAdmin?
-  salonStaff       SalonStaff?
-  superAdmin       SuperAdmin?
+  id                 String              @id @default(cuid())
+  email              String              @unique
+  password           String
+  fullName           String
+  phone              String?
+  role               UserRole            @default(CLIENT)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  bookings           Booking[]
+  client             Client?
+  receivedMessages   Message[]           @relation("receiver")
+  sentMessages       Message[]           @relation("sender")
+  reviews            Review[]
+  salonAdmin         SalonAdmin?
+  salonStaff         SalonStaff?
+  superAdmin         SuperAdmin?
+  passwordResetToken PasswordResetToken?
 
   @@index([email])
   @@index([role])
@@ -138,7 +148,7 @@ model StaffAvailability {
 model Booking {
   id            String        @id @default(cuid())
   clientId      String?
-  clientPhone   String?       // For guest bookings, store phone directly
+  clientPhone   String?
   salonId       String
   serviceId     String
   staffId       String?
