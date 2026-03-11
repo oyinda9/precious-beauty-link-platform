@@ -588,7 +588,7 @@ export default async function Home() {
                   </li>
                 ))}
               </ul>
-              <Link href="/salon/register">
+              <Link href="/salon/register-salon-owner">
                 <Button
                   size="lg"
                   className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
