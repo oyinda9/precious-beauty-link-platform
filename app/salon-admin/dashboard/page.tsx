@@ -11,7 +11,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -43,37 +42,35 @@ import {
   Phone,
   Mail,
   MapPin,
-  UserCircle,
   BarChart3,
   Calendar,
-  Star,
   Search,
   Filter,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
   Download,
   Bell,
-  HelpCircle,
-  Home,
-  PieChart,
-  TrendingUp,
   Award,
-  Gift,
-  Shield,
-  Sun,
-  Moon,
-  BookOpen,
-  FileText,
   CreditCard,
   MessageSquare,
 } from "lucide-react";
 import { Label } from "@radix-ui/react-label";
+import { Dialog } from "@radix-ui/react-dialog";
 
 // ------------------------------
 // TYPES
 // ------------------------------
+
+interface Subscription {
+  id: string;
+  plan: string;
+  status: string;
+  startDate?: string;
+  endDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 interface Booking {
   id: string;
@@ -133,6 +130,65 @@ interface Service {
 // ------------------------------
 
 export default function SalonAdminDashboard() {
+  // Payment modal state and logic
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
+  const [selectedAmount, setSelectedAmount] = useState<number | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<string>("card");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
+  const [transferProof, setTransferProof] = useState<File | null>(null);
+  const [paying, setPaying] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [paymentError, setPaymentError] = useState("");
+
+  function canPay() {
+    if (selectedMethod === "card") {
+      return (
+        cardNumber.length >= 12 && cardExpiry.length >= 4 && cardCvc.length >= 3
+      );
+    }
+    if (selectedMethod === "transfer") {
+      return !!transferProof;
+    }
+    return true;
+  }
+
+  async function handleCompletePayment() {
+    setPaying(true);
+    setPaymentError("");
+    setTimeout(() => {
+      setPaying(false);
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        setPaymentModalOpen(false);
+        setPaymentSuccess(false);
+        setCardNumber("");
+        setCardExpiry("");
+        setCardCvc("");
+        setTransferProof(null);
+        setPaymentError("");
+      }, 1500);
+    }, 1200);
+  }
+
+  function handlePaystack() {
+    setPaying(true);
+    setTimeout(() => {
+      setPaying(false);
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        setPaymentModalOpen(false);
+        setPaymentSuccess(false);
+      }, 1500);
+    }, 1200);
+  }
+  // Payment modal state
+
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
+
   const router = useRouter();
 
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -152,10 +208,7 @@ export default function SalonAdminDashboard() {
   const [dateRange, setDateRange] = useState<
     "today" | "week" | "month" | "all"
   >("all");
-  const [notifications, setNotifications] = useState(3);
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [theme, setTheme] = useState<"light" | "dark">("light");
 
   const [stats, setStats] = useState({
     totalBookings: 0,
@@ -187,6 +240,23 @@ export default function SalonAdminDashboard() {
   const [serviceSuccess, setServiceSuccess] = useState<string | null>(null);
   const [showServiceForm, setShowServiceForm] = useState(false);
   const [loadingServices, setLoadingServices] = useState(false);
+
+  // Fetch subscription info for the salon
+  const fetchSubscription = async (salonId: string) => {
+    setLoadingSubscription(true);
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) return;
+      const res = await fetch(`/api/subscription?salonId=${salonId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const json = await res.json();
+      setSubscription(json.subscription);
+    } finally {
+      setLoadingSubscription(false);
+    }
+  };
 
   // Load salon first
   useEffect(() => {
@@ -456,6 +526,8 @@ export default function SalonAdminDashboard() {
       if (json.user) setOwnerName(json.user.fullName);
       if (json.salons?.length > 0) {
         setSalon(json.salons[0]);
+        // Fetch subscription for this salon
+        fetchSubscription(json.salons[0].id);
       } else {
         setError("No salon found for this account");
       }
@@ -689,6 +761,101 @@ export default function SalonAdminDashboard() {
     window.open(url, "_blank");
   };
 
+  // Payment Modal Component
+  const PaymentModal = () => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl p-6 w-full max-w-md">
+        <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-white">
+          Pay for Plan
+        </h2>
+        <p className="mb-4 text-slate-600 dark:text-slate-300">
+          Plan: <span className="font-semibold">{selectedPlan}</span>
+          <br />
+          Amount:{" "}
+          <span className="font-semibold">
+            ₦{selectedAmount?.toLocaleString()}
+          </span>
+        </p>
+        <div className="mb-4">
+          <label className="block mb-1 font-medium">Payment Method</label>
+          <div className="flex gap-2">
+            <button
+              className={`px-4 py-2 rounded-lg border ${selectedMethod === "card" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
+              onClick={() => setSelectedMethod("card")}
+            >
+              Card
+            </button>
+            <button
+              className={`px-4 py-2 rounded-lg border ${selectedMethod === "transfer" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
+              onClick={() => setSelectedMethod("transfer")}
+            >
+              Bank Transfer
+            </button>
+            <button
+              className={`px-4 py-2 rounded-lg border ${selectedMethod === "paystack" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
+              onClick={() => setSelectedMethod("paystack")}
+            >
+              Paystack
+            </button>
+          </div>
+        </div>
+        {/* Payment form placeholder */}
+        {selectedMethod === "card" && (
+          <div className="mb-4">
+            <label className="block mb-1">Card Number</label>
+            <input
+              className="w-full border rounded px-3 py-2 mb-2"
+              placeholder="1234 5678 9012 3456"
+            />
+            <div className="flex gap-2">
+              <input
+                className="w-1/2 border rounded px-3 py-2"
+                placeholder="MM/YY"
+              />
+              <input
+                className="w-1/2 border rounded px-3 py-2"
+                placeholder="CVC"
+              />
+            </div>
+          </div>
+        )}
+        {selectedMethod === "transfer" && (
+          <div className="mb-4 text-slate-700 dark:text-slate-200">
+            <p>Bank: GTBank</p>
+            <p>Account Name: Precious Beauty Link</p>
+            <p>Account Number: 0249077051</p>
+            <p className="text-xs mt-2 text-slate-500">
+              Send the exact amount and upload proof after payment.
+            </p>
+            <input type="file" className="mt-2" />
+          </div>
+        )}
+        {selectedMethod === "paystack" && (
+          <div className="mb-4 text-slate-700 dark:text-slate-200">
+            <p>Click below to pay securely with Paystack.</p>
+            <button className="mt-2 px-4 py-2 bg-green-600 text-white rounded">
+              Pay with Paystack
+            </button>
+          </div>
+        )}
+        <div className="flex justify-end gap-2 mt-4">
+          <button
+            className="px-4 py-2 rounded bg-slate-200 text-slate-800 hover:bg-slate-300"
+            onClick={() => setPaymentModalOpen(false)}
+          >
+            Cancel
+          </button>
+          <button
+            className="px-4 py-2 rounded bg-slate-800 text-white hover:bg-slate-700"
+            onClick={() => setPaymentModalOpen(false)}
+          >
+            Complete Payment
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
@@ -709,7 +876,7 @@ export default function SalonAdminDashboard() {
       {/* Mobile Top Nav Bar */}
       <div className="lg:hidden bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 sticky top-0 z-40 flex items-center justify-between px-4 py-3">
         <button
-          onClick={() => setMobileMenuOpen((v) => !v)}
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="p-2 rounded-lg bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 focus:outline-none"
           aria-label="Open menu"
         >
@@ -834,7 +1001,7 @@ export default function SalonAdminDashboard() {
                 <Button
                   key={item.value}
                   variant="ghost"
-                  className={`w-full justify-${sidebarCollapsed ? "center" : "start"} gap-3 ${
+                  className={`w-full ${sidebarCollapsed ? "justify-center px-2" : "justify-start"} gap-3 ${
                     activeTab === item.value
                       ? "bg-slate-100 dark:bg-slate-700 text-slate-900 dark:text-white"
                       : "text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50"
@@ -990,7 +1157,6 @@ export default function SalonAdminDashboard() {
             {/* Dashboard Stats */}
             {activeTab === "dashboard" && (
               <>
-                {/* Responsive: 1 column on mobile, 2 on sm, 4 on lg */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                   <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm hover:shadow-md transition-all">
                     <CardHeader className="pb-2">
@@ -1062,7 +1228,7 @@ export default function SalonAdminDashboard() {
                   </Card>
                 </div>
 
-                {/* Recent Bookings - Responsive */}
+                {/* Recent Bookings */}
                 <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
                   <CardHeader className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -1182,7 +1348,7 @@ export default function SalonAdminDashboard() {
                 </CardHeader>
 
                 <CardContent className="p-2 sm:p-6 pt-0">
-                  {/* Mobile Booking Cards - Improved for phone */}
+                  {/* Mobile Booking Cards */}
                   <div className="lg:hidden space-y-4">
                     {displayBookings.length === 0 ? (
                       <div className="text-center py-12">
@@ -1240,7 +1406,7 @@ export default function SalonAdminDashboard() {
                               </Badge>
                             </div>
 
-                            <div className="grid grid-cols-1 xs:grid-cols-2 gap-3 mb-3">
+                            <div className="grid grid-cols-2 gap-3 mb-3">
                               <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
                                 <Calendar className="w-4 h-4 text-slate-600 mb-1" />
                                 <p className="text-xs text-slate-500">Date</p>
@@ -1274,9 +1440,8 @@ export default function SalonAdminDashboard() {
                                   onValueChange={(val) =>
                                     handleStatusChange(booking.id, val)
                                   }
-                                  disabled={false}
                                 >
-                                  <SelectTrigger className="w-full xs:w-32 h-9 mb-2 xs:mb-0">
+                                  <SelectTrigger className="w-full xs:w-32 h-9">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1294,17 +1459,14 @@ export default function SalonAdminDashboard() {
                                     </SelectItem>
                                   </SelectContent>
                                 </Select>
-                                {/* WhatsApp Button - prominent and full width on mobile */}
                                 <Button
                                   size="sm"
                                   variant="outline"
                                   onClick={() => sendWhatsAppMessage(booking)}
-                                  className="rounded-full border-green-500 text-green-700 bg-white hover:bg-green-50 w-full xs:w-auto flex items-center justify-center gap-2 px-4 py-2"
-                                  style={{ minHeight: 0, fontWeight: 600, fontSize: '1rem' }}
-                                  aria-label="Contact on WhatsApp"
+                                  className="rounded-full border-green-500 text-green-700 bg-white hover:bg-green-50 w-full xs:w-auto flex items-center justify-center gap-2"
                                 >
                                   <svg
-                                    className="w-5 h-5 mr-1"
+                                    className="w-5 h-5"
                                     viewBox="0 0 24 24"
                                     fill="currentColor"
                                   >
@@ -1433,7 +1595,6 @@ export default function SalonAdminDashboard() {
                                     onValueChange={(val) =>
                                       handleStatusChange(booking.id, val)
                                     }
-                                    disabled={false}
                                   >
                                     <SelectTrigger className="w-32">
                                       <SelectValue />
@@ -1453,7 +1614,6 @@ export default function SalonAdminDashboard() {
                                       </SelectItem>
                                     </SelectContent>
                                   </Select>
-                                  {/* WhatsApp Button */}
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -1468,13 +1628,6 @@ export default function SalonAdminDashboard() {
                                       <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
                                     </svg>
                                     WhatsApp
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="text-slate-500"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
                                   </Button>
                                 </div>
                               </td>
@@ -1491,10 +1644,10 @@ export default function SalonAdminDashboard() {
                         {bookings.length} bookings
                       </p>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm" disabled={false}>
+                        <Button variant="outline" size="sm">
                           Previous
                         </Button>
-                        <Button variant="outline" size="sm" disabled={false}>
+                        <Button variant="outline" size="sm">
                           Next
                         </Button>
                       </div>
@@ -1549,7 +1702,6 @@ export default function SalonAdminDashboard() {
                     </div>
                   )}
 
-                  {/* Responsive: stack on mobile, 2 columns on lg */}
                   {!loadingServices && (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                       {showServiceForm && (
@@ -1598,7 +1750,6 @@ export default function SalonAdminDashboard() {
                                     });
                                     setServiceError(null);
                                   }}
-                                  disabled={false}
                                   placeholder="e.g., Haircut, Manicure"
                                   className="mt-1"
                                 />
@@ -1617,7 +1768,6 @@ export default function SalonAdminDashboard() {
                                       description: e.target.value,
                                     })
                                   }
-                                  disabled={false}
                                   rows={3}
                                   placeholder="Brief description of the service"
                                 />
@@ -1637,7 +1787,6 @@ export default function SalonAdminDashboard() {
                                         price: Number(e.target.value),
                                       })
                                     }
-                                    disabled={false}
                                     placeholder="0"
                                     min="0"
                                     className="mt-1"
@@ -1656,7 +1805,6 @@ export default function SalonAdminDashboard() {
                                         duration: Number(e.target.value),
                                       })
                                     }
-                                    disabled={false}
                                     placeholder="30"
                                     min="0"
                                     className="mt-1"
@@ -1676,7 +1824,6 @@ export default function SalonAdminDashboard() {
                                       category: e.target.value,
                                     })
                                   }
-                                  disabled={false}
                                   placeholder="e.g., Hair, Nails, Spa"
                                   className="mt-1"
                                 />
@@ -1684,7 +1831,6 @@ export default function SalonAdminDashboard() {
 
                               <Button
                                 onClick={handleSaveService}
-                                disabled={false}
                                 className="w-full bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600"
                               >
                                 {savingService ? (
@@ -2124,19 +2270,263 @@ export default function SalonAdminDashboard() {
                       </CardHeader>
                       <CardContent>
                         <div className="bg-slate-800 text-white p-4 rounded-lg">
-                          <p className="text-sm opacity-90">Current Plan</p>
-                          <p className="text-2xl font-bold mb-2">
-                            Professional
-                          </p>
-                          <p className="text-sm opacity-90 mb-4">
-                            ₦25,000/month
-                          </p>
-                          <Button
-                            variant="secondary"
-                            className="w-full bg-white text-slate-800 hover:bg-slate-100"
-                          >
-                            Manage Plan
-                          </Button>
+                          {loadingSubscription ? (
+                            <p>Loading plan...</p>
+                          ) : subscription ? (
+                            <>
+                              <p className="text-sm opacity-90">Current Plan</p>
+                              <p className="text-2xl font-bold mb-2">
+                                {subscription.plan}
+                              </p>
+                              <p className="text-sm opacity-90 mb-2">
+                                Status: {subscription.status}
+                              </p>
+                              {subscription.endDate && (
+                                <p className="text-sm opacity-90 mb-2">
+                                  Next Payment Due:{" "}
+                                  {new Date(
+                                    subscription.endDate,
+                                  ).toLocaleDateString()}
+                                </p>
+                              )}
+                              <div className="space-y-2">
+                                <Button
+                                  variant="secondary"
+                                  className="w-full bg-white text-slate-800 hover:bg-slate-100"
+                                  onClick={() => {
+                                    setSelectedPlan(subscription.plan);
+                                    setSelectedAmount(
+                                      subscription.plan === "PROFESSIONAL"
+                                        ? 25000
+                                        : subscription.plan === "ENTERPRISE"
+                                          ? 50000
+                                          : 0,
+                                    );
+                                    setSelectedMethod("card");
+                                    setPaymentModalOpen(true);
+                                  }}
+                                >
+                                  Pay Now
+                                </Button>
+                                <div className="mt-4">
+                                  <p className="text-sm font-semibold mb-2">
+                                    Upgrade Plan
+                                  </p>
+                                  <div className="space-y-2">
+                                    <Button
+                                      variant="outline"
+                                      className="w-full bg-white text-slate-800 hover:bg-slate-100 border-slate-300"
+                                      onClick={() => {
+                                        setSelectedPlan("PROFESSIONAL");
+                                        setSelectedAmount(25000);
+                                        setSelectedMethod("card");
+                                        setPaymentModalOpen(true);
+                                      }}
+                                    >
+                                      Upgrade to Standard (₦25,000/mo)
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      className="w-full bg-white text-slate-800 hover:bg-slate-100 border-slate-300"
+                                      onClick={() => {
+                                        setSelectedPlan("ENTERPRISE");
+                                        setSelectedAmount(50000);
+                                        setSelectedMethod("card");
+                                        setPaymentModalOpen(true);
+                                      }}
+                                    >
+                                      Upgrade to Premium (₦50,000/mo)
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <p>No subscription found.</p>
+                              <Button
+                                variant="secondary"
+                                className="w-full bg-white text-slate-800 hover:bg-slate-100 mt-2"
+                                onClick={() => {
+                                  setSelectedPlan("PROFESSIONAL");
+                                  setSelectedAmount(25000);
+                                  setSelectedMethod("card");
+                                  setPaymentModalOpen(true);
+                                }}
+                              >
+                                Choose Plan
+                              </Button>
+                              {/* Payment Modal */}
+                              <Dialog
+                                open={paymentModalOpen}
+                                onOpenChange={(open) => {
+                                  setPaymentModalOpen(open);
+                                  if (!open) {
+                                    setCardNumber("");
+                                    setCardExpiry("");
+                                    setCardCvc("");
+                                    setTransferProof(null);
+                                    setPaymentSuccess(false);
+                                    setPaymentError("");
+                                  }
+                                }}
+                              >
+                                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+                                  <div className="bg-white dark:bg-slate-900 rounded-xl shadow-xl p-6 w-full max-w-md">
+                                    <h2 className="text-xl font-bold mb-2 text-slate-800 dark:text-white">
+                                      Pay for Plan
+                                    </h2>
+                                    <p className="mb-4 text-slate-600 dark:text-slate-300">
+                                      Plan:{" "}
+                                      <span className="font-semibold">
+                                        {selectedPlan}
+                                      </span>
+                                      <br />
+                                      Amount:{" "}
+                                      <span className="font-semibold">
+                                        ₦{selectedAmount?.toLocaleString()}
+                                      </span>
+                                    </p>
+                                    <div className="mb-4">
+                                      <label className="block mb-1 font-medium">
+                                        Payment Method
+                                      </label>
+                                      <div className="flex gap-2">
+                                        <button
+                                          className={`px-4 py-2 rounded-lg border ${selectedMethod === "card" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
+                                          onClick={() =>
+                                            setSelectedMethod("card")
+                                          }
+                                        >
+                                          Card
+                                        </button>
+                                        <button
+                                          className={`px-4 py-2 rounded-lg border ${selectedMethod === "transfer" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
+                                          onClick={() =>
+                                            setSelectedMethod("transfer")
+                                          }
+                                        >
+                                          Bank Transfer
+                                        </button>
+                                        <button
+                                          className={`px-4 py-2 rounded-lg border ${selectedMethod === "paystack" ? "bg-slate-800 text-white" : "bg-slate-100"}`}
+                                          onClick={() =>
+                                            setSelectedMethod("paystack")
+                                          }
+                                        >
+                                          Paystack
+                                        </button>
+                                      </div>
+                                    </div>
+                                    {paymentSuccess ? (
+                                      <div className="mb-4 p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg text-center">
+                                        Payment successful! Thank you.
+                                      </div>
+                                    ) : (
+                                      <>
+                                        {paymentError && (
+                                          <div className="mb-2 p-2 bg-rose-50 border border-rose-200 text-rose-700 rounded text-sm text-center">
+                                            {paymentError}
+                                          </div>
+                                        )}
+                                        {selectedMethod === "card" && (
+                                          <div className="mb-4">
+                                            <label className="block mb-1">
+                                              Card Number
+                                            </label>
+                                            <input
+                                              className="w-full border rounded px-3 py-2 mb-2"
+                                              placeholder="1234 5678 9012 3456"
+                                              value={cardNumber}
+                                              onChange={(e) =>
+                                                setCardNumber(e.target.value)
+                                              }
+                                            />
+                                            <div className="flex gap-2">
+                                              <input
+                                                className="w-1/2 border rounded px-3 py-2"
+                                                placeholder="MM/YY"
+                                                value={cardExpiry}
+                                                onChange={(e) =>
+                                                  setCardExpiry(e.target.value)
+                                                }
+                                              />
+                                              <input
+                                                className="w-1/2 border rounded px-3 py-2"
+                                                placeholder="CVC"
+                                                value={cardCvc}
+                                                onChange={(e) =>
+                                                  setCardCvc(e.target.value)
+                                                }
+                                              />
+                                            </div>
+                                          </div>
+                                        )}
+                                        {selectedMethod === "transfer" && (
+                                          <div className="mb-4 text-slate-700 dark:text-slate-200">
+                                            <p>Bank: GTBank</p>
+                                            <p>
+                                              Account Name: Precious Beauty Link
+                                            </p>
+                                            <p>Account Number: 0249077051</p>
+                                            <p className="text-xs mt-2 text-slate-500">
+                                              Send the exact amount and upload
+                                              proof after payment.
+                                            </p>
+                                            <input
+                                              type="file"
+                                              className="mt-2"
+                                              onChange={(e) =>
+                                                setTransferProof(
+                                                  e.target.files?.[0] || null,
+                                                )
+                                              }
+                                            />
+                                          </div>
+                                        )}
+                                        {selectedMethod === "paystack" && (
+                                          <div className="mb-4 text-slate-700 dark:text-slate-200">
+                                            <p>
+                                              Click below to pay securely with
+                                              Paystack.
+                                            </p>
+                                            <button
+                                              className="mt-2 px-4 py-2 bg-green-600 text-white rounded"
+                                              onClick={handlePaystack}
+                                            >
+                                              Pay with Paystack
+                                            </button>
+                                          </div>
+                                        )}
+                                        <div className="flex justify-end gap-2 mt-4">
+                                          <button
+                                            className="px-4 py-2 rounded bg-slate-200 text-slate-800 hover:bg-slate-300"
+                                            onClick={() =>
+                                              setPaymentModalOpen(false)
+                                            }
+                                            disabled={paying}
+                                          >
+                                            Cancel
+                                          </button>
+                                          {selectedMethod !== "paystack" && (
+                                            <button
+                                              className="px-4 py-2 rounded bg-slate-800 text-white hover:bg-slate-700"
+                                              onClick={handleCompletePayment}
+                                              disabled={paying || !canPay()}
+                                            >
+                                              {paying
+                                                ? "Processing..."
+                                                : "Complete Payment"}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              </Dialog>
+                            </>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
@@ -2169,6 +2559,9 @@ export default function SalonAdminDashboard() {
           </div>
         </main>
       </div>
+
+      {/* Payment Modal */}
+      {paymentModalOpen && <PaymentModal />}
     </div>
   );
 }

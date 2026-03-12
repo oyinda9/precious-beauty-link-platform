@@ -564,66 +564,145 @@ export default async function Home() {
       {/* Pricing Teaser */}
       <section id="pricing" className="py-16 lg:py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
-                Simple, Transparent Pricing
-              </h2>
-              <p className="text-lg text-slate-600 mb-6">
-                No hidden fees. No complicated tiers. Just one simple plan that
-                includes everything you need to run your salon.
-              </p>
-              <ul className="space-y-3 mb-8">
-                {[
-                  "Unlimited bookings",
-                  "Staff management",
-                  "Automated reminders",
-                  "Analytics & reports",
-                  "24/7 support",
-                  "Free updates",
-                ].map((item) => (
-                  <li key={item} className="flex items-center gap-3">
-                    <CheckCircle2 className="h-5 w-5 text-green-500" />
-                    <span className="text-slate-600">{item}</span>
+          <div className="text-center mb-12 lg:mb-16">
+            <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
+              Flexible Plans for Every Salon
+            </h2>
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Start free, upgrade as you grow. Choose the plan that fits your
+              business needs.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {/* Free/Trial Plan */}
+            <Card className="border-2 border-slate-200">
+              <CardHeader className="bg-gradient-to-r from-slate-100 to-slate-50 rounded-t-lg">
+                <CardTitle className="text-xl">Free / Trial</CardTitle>
+                <CardDescription className="text-slate-500">
+                  Try all core features
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold text-slate-900">₦0</span>
+                  <span className="text-slate-500 text-base">/month</span>
+                </div>
+                <ul className="space-y-2 mb-6 text-sm">
+                  <li>Up to 2 staff</li>
+                  <li>5 bookings per month</li>
+                  <li>Basic dashboard</li>
+                  <li>Basic analytics</li>
+                  <li className="text-slate-400 line-through">
+                    SMS/WhatsApp notifications
                   </li>
-                ))}
-              </ul>
-              <Link href="/salon/register-salon-owner">
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700"
-                >
-                  Start Your Free Trial
+                  <li className="text-slate-400 line-through">
+                    Priority support
+                  </li>
+                </ul>
+                <Button className="w-full" asChild>
+                  <Link href="/register-salon-owner">Start Free</Link>
                 </Button>
-              </Link>
-              <p className="text-sm text-slate-500 mt-4">
-                No credit card required • 14-day free trial
-              </p>
-            </div>
-            <div className="relative">
-              <Card className="border-2 border-purple-200 shadow-2xl">
-                <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-t-lg">
-                  <CardTitle className="text-2xl">Professional Plan</CardTitle>
-                  <CardDescription className="text-white/90">
-                    Everything you need to grow
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-8">
-                  <div className="text-center mb-6">
-                    <span className="text-5xl font-bold text-slate-900">
-                      ₦25,000
-                    </span>
-                    <span className="text-slate-500">/month</span>
-                  </div>
-                  <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 mb-4">
-                    Get Started
-                  </Button>
-                  <p className="text-xs text-center text-slate-500">
-                    Save 20% with annual billing
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+              </CardContent>
+            </Card>
+            {/* Basic Plan */}
+            <Card className="border-2 border-purple-200">
+              <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-t-lg">
+                <CardTitle className="text-xl">Basic</CardTitle>
+                <CardDescription className="text-slate-500">
+                  For small teams
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold text-slate-900">
+                    ₦15,000
+                  </span>
+                  <span className="text-slate-500 text-base">/month</span>
+                </div>
+                <ul className="space-y-2 mb-6 text-sm">
+                  <li>Up to 5 staff</li>
+                  <li>Unlimited bookings</li>
+                  <li>Basic dashboard</li>
+                  <li>Basic analytics</li>
+                  <li>WhatsApp notifications (5/month)</li>
+                  <li className="text-slate-400 line-through">
+                    SMS notifications
+                  </li>
+                  <li className="text-slate-400 line-through">
+                    Priority support
+                  </li>
+                </ul>
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                  asChild
+                >
+                  <Link href="/register-salon-owner">Choose Basic</Link>
+                </Button>
+              </CardContent>
+            </Card>
+            {/* Standard Plan */}
+            <Card className="border-2 border-green-200">
+              <CardHeader className="bg-gradient-to-r from-green-100 to-emerald-100 rounded-t-lg">
+                <CardTitle className="text-xl">Standard</CardTitle>
+                <CardDescription className="text-slate-500">
+                  For growing salons
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold text-slate-900">
+                    ₦25,000
+                  </span>
+                  <span className="text-slate-500 text-base">/month</span>
+                </div>
+                <ul className="space-y-2 mb-6 text-sm">
+                  <li>Up to 15 staff</li>
+                  <li>Unlimited bookings</li>
+                  <li>Basic dashboard</li>
+                  <li>Basic analytics</li>
+                  <li>WhatsApp notifications (unlimited)</li>
+                  <li>SMS notifications (unlimited)</li>
+                  <li>Priority support</li>
+                </ul>
+                <Button
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white"
+                  asChild
+                >
+                  <Link href="/register-salon-owner">Choose Standard</Link>
+                </Button>
+              </CardContent>
+            </Card>
+            {/* Premium Plan */}
+            <Card className="border-2 border-yellow-300">
+              <CardHeader className="bg-gradient-to-r from-yellow-100 to-pink-100 rounded-t-lg">
+                <CardTitle className="text-xl">Premium</CardTitle>
+                <CardDescription className="text-slate-500">
+                  For large teams
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="text-center mb-4">
+                  <span className="text-4xl font-bold text-slate-900">
+                    ₦50,000
+                  </span>
+                  <span className="text-slate-500 text-base">/month</span>
+                </div>
+                <ul className="space-y-2 mb-6 text-sm">
+                  <li>Unlimited staff</li>
+                  <li>Unlimited bookings</li>
+                  <li>Basic dashboard</li>
+                  <li>Basic analytics</li>
+                  <li>WhatsApp & SMS notifications (unlimited)</li>
+                  <li>Priority support</li>
+                </ul>
+                <Button
+                  className="w-full bg-gradient-to-r from-yellow-400 to-pink-400 text-white"
+                  asChild
+                >
+                  <Link href="/register-salon-owner">Choose Premium</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -18,7 +18,6 @@ import {
   AlertCircle,
   CheckCircle2,
   Loader2,
-  Sparkles,
   Scissors,
   Building2,
 } from "lucide-react";
@@ -53,24 +52,31 @@ interface FormData {
 
 export default function RegisterSalonOwnerPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"account" | "salon">("account");
+  const [step, setStep] = useState<"account" | "salon" | "plan">("account");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<string>("");
 
   // Slug availability
   const [slugChecking, setSlugChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
 
   const [formData, setFormData] = useState<FormData>({
-    // Account
     fullName: "",
     email: "",
     password: "",
     phone: "",
-
-    // Salon
     salonName: "",
     salonSlug: "",
     salonAddress: "",
@@ -80,7 +86,6 @@ export default function RegisterSalonOwnerPage() {
     salonPhone: "",
   });
 
-  // Helper Functions
   const generateSlug = (name: string) => {
     return name
       .toLowerCase()
@@ -110,7 +115,6 @@ export default function RegisterSalonOwnerPage() {
     }
   };
 
-  // Event Handlers
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
@@ -123,7 +127,6 @@ export default function RegisterSalonOwnerPage() {
     const name = e.target.value;
     handleChange(e);
 
-    // Auto-generate slug
     if (
       !formData.salonSlug ||
       formData.salonSlug === generateSlug(formData.salonName)
@@ -140,7 +143,6 @@ export default function RegisterSalonOwnerPage() {
     checkSlugAvailability(slug);
   };
 
-  // Validation
   const validateAccountStep = () => {
     if (!formData.fullName || !formData.email || !formData.password) {
       setError("Please fill in all required fields");
@@ -178,34 +180,25 @@ export default function RegisterSalonOwnerPage() {
     return true;
   };
 
-  // Form Submissions
-  const handleAccountSubmit = (e: React.FormEvent) => {
+  const handlePlanSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateAccountStep()) {
-      setStep("salon");
+    if (!selectedPlan) {
+      setError("Please select a plan to continue");
+      return;
     }
-  };
-
-  const handleSalonSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateSalonStep()) return;
-
-    setLoading(true);
     setError("");
-
+    setLoading(true);
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Account data
           email: formData.email,
           password: formData.password,
           fullName: formData.fullName,
           phone: formData.phone,
           role: "SALON_ADMIN",
-
-          // Salon data
+          plan: selectedPlan,
           salonName: formData.salonName,
           salonSlug: formData.salonSlug,
           salonAddress: formData.salonAddress,
@@ -215,15 +208,11 @@ export default function RegisterSalonOwnerPage() {
           salonPhone: formData.salonPhone,
         }),
       });
-
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Registration failed");
       }
-
-      setSuccess(
-        "Salon created successfully! Redirecting to your dashboard...",
-      );
+      setSuccess("Salon created successfully! Redirecting to your dashboard...");
       setTimeout(() => router.push("/salon-admin/dashboard"), 1500);
     } catch (error: any) {
       setError(error.message || "An error occurred. Please try again.");
@@ -232,22 +221,53 @@ export default function RegisterSalonOwnerPage() {
     }
   };
 
+  const handleAccountSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateAccountStep()) {
+      setStep("salon");
+    }
+  };
+
+  const handleSalonSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateSalonStep()) return;
+    setStep("plan");
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-200 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000" />
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated Balls Background - Pure Tailwind */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute w-96 h-96 bg-purple-300/30 rounded-full blur-3xl animate-[blob_7s_infinite] top-0 -left-20"></div>
+        <div className="absolute w-96 h-96 bg-pink-300/30 rounded-full blur-3xl animate-[blob_7s_infinite_2s] top-1/2 -right-20"></div>
+        <div className="absolute w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_4s] bottom-0 left-1/3"></div>
+        <div className="absolute w-80 h-80 bg-pink-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_1s] top-20 right-1/4"></div>
+        
+        {/* Floating small balls */}
+        <div className="absolute w-16 h-16 bg-purple-400/30 rounded-full animate-[float-slow_8s_ease-in-out_infinite] top-1/4 left-1/4"></div>
+        <div className="absolute w-24 h-24 bg-pink-400/30 rounded-full animate-[float-medium_6s_ease-in-out_infinite] top-2/3 left-1/5"></div>
+        <div className="absolute w-12 h-12 bg-purple-500/30 rounded-full animate-[float-fast_4s_ease-in-out_infinite] top-1/2 left-3/4"></div>
+        <div className="absolute w-20 h-20 bg-pink-500/30 rounded-full animate-[float-slow_8s_ease-in-out_infinite] top-3/4 left-2/3"></div>
+        <div className="absolute w-32 h-32 bg-purple-300/30 rounded-full animate-[float-medium_6s_ease-in-out_infinite] top-1/5 right-1/5"></div>
+        <div className="absolute w-16 h-16 bg-pink-300/30 rounded-full animate-[float-fast_4s_ease-in-out_infinite] top-4/5 right-1/4"></div>
       </div>
 
+      {/* Interactive ball that follows mouse */}
+      <div 
+        className="absolute w-40 h-40 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-xl opacity-20 transition-all duration-300 ease-out pointer-events-none"
+        style={{
+          transform: `translate(${mousePosition.x - 80}px, ${mousePosition.y - 80}px)`,
+        }}
+      ></div>
+
       {/* Floating Icons */}
-      <div className="absolute top-20 left-20 hidden lg:block animate-float">
+      <div className="absolute top-20 left-20 hidden lg:block animate-[float_6s_ease-in-out_infinite]">
         <div className="w-16 h-16 bg-white/80 backdrop-blur rounded-2xl shadow-xl flex items-center justify-center rotate-12">
           <Scissors className="w-8 h-8 text-purple-600" />
         </div>
       </div>
 
-      <div className="absolute bottom-20 right-20 hidden lg:block animate-float animation-delay-2000">
+      <div className="absolute bottom-20 right-20 hidden lg:block animate-[float_6s_ease-in-out_infinite_2s]">
         <div className="w-16 h-16 bg-white/80 backdrop-blur rounded-2xl shadow-xl flex items-center justify-center -rotate-12">
           <Building2 className="w-8 h-8 text-pink-600" />
         </div>
@@ -257,42 +277,48 @@ export default function RegisterSalonOwnerPage() {
       <div className="w-full max-w-2xl relative z-10">
         {/* Progress Steps - Desktop */}
         <div className="hidden lg:flex items-center justify-center gap-4 mb-8">
-          <div
-            className={`flex items-center gap-2 ${step === "account" ? "text-purple-600" : "text-gray-400"}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                step === "account"
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              1
+          {[
+            { label: "Account Details", key: "account" },
+            { label: "Salon Setup", key: "salon" },
+            { label: "Select Plan", key: "plan" },
+          ].map((s, idx, arr) => (
+            <div key={s.key} className="flex items-center gap-2">
+              <div
+                className={`flex items-center gap-2 ${
+                  step === s.key ? "text-purple-600" : "text-gray-400"
+                }`}
+              >
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
+                    step === s.key
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {idx + 1}
+                </div>
+                <span className="font-medium">{s.label}</span>
+              </div>
+              {idx < arr.length - 1 && (
+                <div
+                  className={`w-16 h-0.5 ${
+                    arr.findIndex((x) => x.key === step) > idx
+                      ? "bg-gradient-to-r from-purple-600 to-pink-600"
+                      : "bg-gray-200"
+                  }`}
+                />
+              )}
             </div>
-            <span className="font-medium">Account Details</span>
-          </div>
-          <div
-            className={`w-16 h-0.5 ${step === "salon" ? "bg-purple-600" : "bg-gray-200"}`}
-          />
-          <div
-            className={`flex items-center gap-2 ${step === "salon" ? "text-purple-600" : "text-gray-400"}`}
-          >
-            <div
-              className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                step === "salon"
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-200 text-gray-600"
-              }`}
-            >
-              2
-            </div>
-            <span className="font-medium">Salon Setup</span>
-          </div>
+          ))}
         </div>
 
         {/* Main Card */}
-        <Card className="bg-white/80 backdrop-blur-xl border-2 border-white/50 shadow-2xl">
-          <CardHeader className="text-center">
+        <Card className="bg-white/90 backdrop-blur-xl border-2 border-white/50 shadow-2xl relative overflow-hidden">
+          {/* Card Decoration */}
+          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl -mr-20 -mt-20"></div>
+          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-200/30 to-purple-200/30 rounded-full blur-3xl -ml-20 -mb-20"></div>
+
+          <CardHeader className="text-center relative">
             {/* Logo */}
             <div className="flex justify-center mb-6">
               <div className="relative group">
@@ -304,46 +330,48 @@ export default function RegisterSalonOwnerPage() {
             </div>
 
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              {step === "account" ? "Start Your Journey" : "Setup Your Salon"}
+              {step === "plan"
+                ? "Choose Your Plan"
+                : step === "account"
+                  ? "Start Your Journey"
+                  : "Setup Your Salon"}
             </CardTitle>
             <CardDescription className="text-base mt-2">
-              {step === "account"
-                ? "Create your account to begin managing your salon"
-                : "Tell us about your salon to get started"}
+              {step === "plan"
+                ? "Select the plan that fits your business. You can upgrade later."
+                : step === "account"
+                  ? "Create your account to begin managing your salon"
+                  : "Tell us about your salon to get started"}
             </CardDescription>
 
             {/* Mobile Progress Dots */}
             <div className="lg:hidden flex items-center justify-center gap-2 mt-4">
-              <div
-                className={`w-2 h-2 rounded-full ${step === "account" ? "bg-purple-600 w-4" : "bg-gray-300"}`}
-              />
-              <div
-                className={`w-2 h-2 rounded-full ${step === "salon" ? "bg-purple-600 w-4" : "bg-gray-300"}`}
-              />
+              {["account", "salon", "plan"].map((s, idx) => (
+                <div
+                  key={s}
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    step === s
+                      ? "w-8 bg-gradient-to-r from-purple-600 to-pink-600"
+                      : "w-2 bg-gray-300"
+                  }`}
+                />
+              ))}
             </div>
           </CardHeader>
 
-          <CardContent>
+          <CardContent className="relative">
             {/* Account Step Form */}
-            {step === "account" ? (
+            {step === "account" && (
               <form onSubmit={handleAccountSubmit} className="space-y-5">
-                {/* Error Message */}
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-shake">
-                    <AlertCircle
-                      className="text-red-500 mt-0.5 flex-shrink-0"
-                      size={18}
-                    />
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
+                    <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
 
-                {/* Full Name */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="fullName"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
                     Full Name <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -360,12 +388,8 @@ export default function RegisterSalonOwnerPage() {
                   </div>
                 </div>
 
-                {/* Email */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="email"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                     Email <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -383,12 +407,8 @@ export default function RegisterSalonOwnerPage() {
                   </div>
                 </div>
 
-                {/* Password */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="password"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                     Password <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -414,12 +434,8 @@ export default function RegisterSalonOwnerPage() {
                   <p className="text-xs text-gray-500">Minimum 8 characters</p>
                 </div>
 
-                {/* Phone */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="phone"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
                     Phone Number
                   </Label>
                   <div className="relative">
@@ -454,36 +470,20 @@ export default function RegisterSalonOwnerPage() {
                   </Link>
                 </p>
               </form>
-            ) : (
-              /* Salon Step Form */
+            )}
+
+            {/* Salon Step Form */}
+            {step === "salon" && (
               <form onSubmit={handleSalonSubmit} className="space-y-5">
-                {/* Messages */}
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-shake">
-                    <AlertCircle
-                      className="text-red-500 mt-0.5 flex-shrink-0"
-                      size={18}
-                    />
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
+                    <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
 
-                {success && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex gap-3">
-                    <CheckCircle2
-                      className="text-green-500 mt-0.5 flex-shrink-0"
-                      size={18}
-                    />
-                    <p className="text-sm text-green-600">{success}</p>
-                  </div>
-                )}
-
-                {/* Salon Name */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="salonName"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="salonName" className="text-sm font-medium text-gray-700">
                     Salon Name <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -500,12 +500,8 @@ export default function RegisterSalonOwnerPage() {
                   </div>
                 </div>
 
-                {/* Salon URL */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="salonSlug"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="salonSlug" className="text-sm font-medium text-gray-700">
                     Salon URL <span className="text-red-500">*</span>
                   </Label>
                   <div className="flex gap-2">
@@ -523,15 +519,12 @@ export default function RegisterSalonOwnerPage() {
                     </div>
                     <div className="w-12 h-12 flex items-center justify-center">
                       {slugChecking && (
-                        <Loader2
-                          size={24}
-                          className="animate-spin text-purple-600"
-                        />
+                        <Loader2 size={24} className="animate-spin text-purple-600" />
                       )}
-                      {slugAvailable === true && (
+                      {!slugChecking && slugAvailable === true && (
                         <CheckCircle2 size={24} className="text-green-500" />
                       )}
-                      {slugAvailable === false && (
+                      {!slugChecking && slugAvailable === false && (
                         <AlertCircle size={24} className="text-red-500" />
                       )}
                     </div>
@@ -544,12 +537,8 @@ export default function RegisterSalonOwnerPage() {
                   </p>
                 </div>
 
-                {/* Address */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="salonAddress"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="salonAddress" className="text-sm font-medium text-gray-700">
                     Street Address <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -566,13 +555,9 @@ export default function RegisterSalonOwnerPage() {
                   </div>
                 </div>
 
-                {/* City and State */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="salonCity"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                    <Label htmlFor="salonCity" className="text-sm font-medium text-gray-700">
                       City <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -586,10 +571,7 @@ export default function RegisterSalonOwnerPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="salonState"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                    <Label htmlFor="salonState" className="text-sm font-medium text-gray-700">
                       State
                     </Label>
                     <Input
@@ -603,12 +585,8 @@ export default function RegisterSalonOwnerPage() {
                   </div>
                 </div>
 
-                {/* Salon Phone */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="salonPhone"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="salonPhone" className="text-sm font-medium text-gray-700">
                     Salon Phone
                   </Label>
                   <div className="relative">
@@ -625,12 +603,8 @@ export default function RegisterSalonOwnerPage() {
                   </div>
                 </div>
 
-                {/* Description */}
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="salonDescription"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="salonDescription" className="text-sm font-medium text-gray-700">
                     About Your Salon
                   </Label>
                   <textarea
@@ -644,14 +618,12 @@ export default function RegisterSalonOwnerPage() {
                   />
                 </div>
 
-                {/* Form Actions */}
                 <div className="flex gap-3 pt-4">
                   <Button
                     type="button"
                     variant="outline"
                     className="flex-1 h-12 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600 rounded-xl transition-all"
                     onClick={() => setStep("account")}
-                    disabled={false}
                   >
                     <ChevronLeft className="mr-2 w-4 h-4" />
                     Back
@@ -659,7 +631,88 @@ export default function RegisterSalonOwnerPage() {
                   <Button
                     type="submit"
                     className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold"
-                    disabled={false}
+                  >
+                    Continue to Plan Selection
+                    <ChevronRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </div>
+              </form>
+            )}
+
+            {/* Plan Step Form */}
+            {step === "plan" && (
+              <form onSubmit={handlePlanSubmit} className="space-y-6">
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
+                    <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                )}
+                {success && (
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex gap-3">
+                    <CheckCircle2 className="text-green-500 mt-0.5 shrink-0" size={18} />
+                    <p className="text-sm text-green-600">{success}</p>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {[
+                    { key: "free", name: "Free / Trial", price: "₦0/mo", desc: "Up to 2 staff, 5 bookings/mo, basic dashboard" },
+                    { key: "basic", name: "Basic", price: "₦15,000/mo", desc: "Up to 5 staff, unlimited bookings, WhatsApp notifications (5/mo)" },
+                    { key: "standard", name: "Standard", price: "₦25,000/mo", desc: "Up to 15 staff, unlimited bookings, WhatsApp & SMS notifications, priority support" },
+                    { key: "premium", name: "Premium", price: "₦50,000/mo", desc: "Unlimited staff, all features, priority support" },
+                  ].map((plan) => (
+                    <label 
+                      key={plan.key} 
+                      className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                        selectedPlan === plan.key 
+                          ? "border-purple-600 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md" 
+                          : "border-gray-200 bg-white hover:border-purple-300"
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="plan"
+                        value={plan.key}
+                        checked={selectedPlan === plan.key}
+                        onChange={() => setSelectedPlan(plan.key)}
+                        className="absolute opacity-0"
+                      />
+                      <div className="flex items-start gap-3">
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                          selectedPlan === plan.key 
+                            ? "border-purple-600 bg-purple-600" 
+                            : "border-gray-300"
+                        }`}>
+                          {selectedPlan === plan.key && (
+                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-lg">{plan.name}</span>
+                            <span className="text-purple-600 font-semibold">{plan.price}</span>
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">{plan.desc}</div>
+                        </div>
+                      </div>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex gap-3 pt-4">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-12 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600 rounded-xl transition-all"
+                    onClick={() => setStep("salon")}
+                    disabled={loading}
+                  >
+                    <ChevronLeft className="mr-2 w-4 h-4" />
+                    Back
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold disabled:opacity-50"
+                    disabled={loading}
                   >
                     {loading ? (
                       <>
@@ -668,7 +721,7 @@ export default function RegisterSalonOwnerPage() {
                       </>
                     ) : (
                       <>
-                        Create Salon
+                        Complete Registration
                         <ChevronRight className="ml-2 w-4 h-4" />
                       </>
                     )}
@@ -690,9 +743,7 @@ export default function RegisterSalonOwnerPage() {
               <div className="hidden sm:block w-px h-8 bg-gray-200" />
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span className="text-sm text-gray-600">
-                  No credit card required
-                </span>
+                <span className="text-sm text-gray-600">No credit card required</span>
               </div>
               <div className="hidden sm:block w-px h-8 bg-gray-200" />
               <div className="flex items-center gap-2">
@@ -704,59 +755,33 @@ export default function RegisterSalonOwnerPage() {
         </Card>
       </div>
 
-      {/* Animation Styles */}
+      {/* Add keyframes to your global CSS or use Tailwind's arbitrary values */}
       <style jsx>{`
         @keyframes blob {
-          0%,
-          100% {
-            transform: translate(0px, 0px) scale(1);
-          }
-          33% {
-            transform: translate(30px, -50px) scale(1.1);
-          }
-          66% {
-            transform: translate(-20px, 20px) scale(0.9);
-          }
+          0%, 100% { transform: translate(0px, 0px) scale(1); }
+          33% { transform: translate(30px, -50px) scale(1.1); }
+          66% { transform: translate(-20px, 20px) scale(0.9); }
         }
-        .animate-blob {
-          animation: blob 7s infinite;
+        @keyframes float-slow {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-20px) translateX(10px); }
+        }
+        @keyframes float-medium {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-30px) translateX(-15px); }
+        }
+        @keyframes float-fast {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-40px) translateX(20px); }
         }
         @keyframes float {
-          0%,
-          100% {
-            transform: translateY(0px) rotate(0deg);
-          }
-          50% {
-            transform: translateY(-20px) rotate(5deg);
-          }
-        }
-        .animate-float {
-          animation: float 6s ease-in-out infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(5deg); }
         }
         @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          10%,
-          30%,
-          50%,
-          70%,
-          90% {
-            transform: translateX(-2px);
-          }
-          20%,
-          40%,
-          60%,
-          80% {
-            transform: translateX(2px);
-          }
-        }
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+          20%, 40%, 60%, 80% { transform: translateX(2px); }
         }
       `}</style>
     </div>

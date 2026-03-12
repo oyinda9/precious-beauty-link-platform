@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
       salonSlug,
       salonAddress,
       salonCity,
+
+      plan = "free",
     } = body;
 
     // Validate input
@@ -89,19 +91,7 @@ export async function POST(request: NextRequest) {
     let salon = null;
 
     // Create role-specific records
-    if (userRole === UserRole.SUPER_ADMIN) {
-      await prisma.superAdmin.create({
-        data: {
-          userId: user.id,
-        },
-      });
-    } else if (userRole === UserRole.CLIENT) {
-      await prisma.client.create({
-        data: {
-          userId: user.id,
-        },
-      });
-    } else if (userRole === UserRole.SALON_ADMIN) {
+    if (role === UserRole.SALON_ADMIN) {
       // Create salon
       salon = await prisma.salon.create({
         data: {
@@ -117,11 +107,35 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create salon admin link
-      await prisma.salonAdmin.create({
-        data: {
+      // Create salon admin link only if not exists
+      const existingSalonAdmin = await prisma.salonAdmin.findFirst({
+        where: {
           userId: user.id,
           salonId: salon.id,
+        },
+      });
+      if (!existingSalonAdmin) {
+        await prisma.salonAdmin.create({
+          data: {
+            userId: user.id,
+            salonId: salon.id,
+          },
+        });
+      }
+
+      // Map frontend plan key to SubscriptionPlan enum
+      let planEnum: any = "TRIAL";
+      if (plan === "free") planEnum = "TRIAL";
+      else if (plan === "basic") planEnum = "STARTER";
+      else if (plan === "standard") planEnum = "PROFESSIONAL";
+      else if (plan === "premium") planEnum = "ENTERPRISE";
+
+      // Create subscription record for the salon
+      await prisma.subscription.create({
+        data: {
+          salonId: salon.id,
+          plan: planEnum,
+          status: planEnum === "TRIAL" ? "TRIAL" : "ACTIVE",
         },
       });
     }
