@@ -287,7 +287,7 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <Link href="/salon/register-salon-owner">
+                <Link href="/register-salon-owner">
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto px-8 group"
