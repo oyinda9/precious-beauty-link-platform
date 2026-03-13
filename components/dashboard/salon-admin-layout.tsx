@@ -74,7 +74,7 @@ export default function SalonAdminLayout({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex relative overflow-hidden">
+    <div className="min-h-screen bg-linear-to-br from-purple-50 via-pink-50 to-purple-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 flex relative overflow-hidden">
       {/* Animated Balls Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute w-96 h-96 bg-purple-300/20 rounded-full blur-3xl animate-blob top-0 -left-20"></div>
@@ -101,10 +101,10 @@ export default function SalonAdminLayout({
           <div className="w-64 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl h-full shadow-2xl p-4 flex flex-col border-r border-purple-200 dark:border-purple-800">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
+                <div className="w-8 h-8 bg-linear-to-r from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">SB</span>
                 </div>
-                <span className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <span className="font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   SalonBook
                 </span>
               </div>
@@ -123,7 +123,7 @@ export default function SalonAdminLayout({
                 <a
                   key={item.href}
                   href={item.href}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all group"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-linear-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all group"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <span className="text-purple-500 group-hover:text-purple-600 transition-colors">
@@ -151,9 +151,10 @@ export default function SalonAdminLayout({
 
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:block bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-purple-200 dark:border-purple-800 h-screen sticky top-0 transition-all duration-300 relative ${
+        className={`hidden lg:block bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-purple-200 dark:border-purple-800 h-screen fixed top-0 left-0 z-30 transition-all duration-300 ${
           sidebarCollapsed ? "w-20" : "w-64"
         }`}
+        style={{ minHeight: '100vh' }}
       >
         <div className="p-4 h-full flex flex-col">
           {/* Logo */}
@@ -162,12 +163,12 @@ export default function SalonAdminLayout({
               sidebarCollapsed ? "justify-center" : ""
             }`}
           >
-            <div className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-2.5 flex-shrink-0 shadow-lg shadow-purple-600/20">
+            <div className="bg-linear-to-r from-purple-600 to-pink-600 rounded-xl p-2.5 shrink-0 shadow-lg shadow-purple-600/20">
               <LayoutDashboard className="w-5 h-5 text-white" />
             </div>
             {!sidebarCollapsed && (
               <div>
-                <h2 className="font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h2 className="font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
                   SalonBook
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -199,7 +200,7 @@ export default function SalonAdminLayout({
                 href={item.href}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all group ${
                   sidebarCollapsed ? "justify-center" : ""
-                } hover:bg-gradient-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20`}
+                } hover:bg-linear-to-r hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20`}
                 title={sidebarCollapsed ? item.label : undefined}
               >
                 <span className="text-purple-500 group-hover:text-purple-600 transition-colors">
@@ -226,7 +227,7 @@ export default function SalonAdminLayout({
               }`}
             >
               <Avatar className="border-2 border-purple-200 dark:border-purple-800">
-                <AvatarFallback className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300">
+                <AvatarFallback className="bg-linear-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300">
                   SA
                 </AvatarFallback>
               </Avatar>
@@ -257,7 +258,10 @@ export default function SalonAdminLayout({
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto relative">
+      <main
+        className="flex-1 relative lg:ml-64"
+        style={{ minHeight: '100vh', overflow: 'auto' }}
+      >
         <div className="px-4 lg:px-8 py-6 lg:py-8">{children}</div>
       </main>
 

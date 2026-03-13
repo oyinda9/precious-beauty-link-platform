@@ -24,6 +24,11 @@ import {
   TrendingUp,
   UserCheck,
   Clock,
+  Copy,
+  ExternalLink,
+  Store,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
 
@@ -63,6 +68,7 @@ export default function DashboardPage() {
   const [ownerName, setOwnerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showSalonInfo, setShowSalonInfo] = useState(false);
   const [stats, setStats] = useState({
     totalBookings: 0,
     completedBookings: 0,
@@ -188,6 +194,19 @@ export default function DashboardPage() {
       ? Math.round((stats.completedBookings / stats.totalBookings) * 100)
       : 0;
 
+  const copyBookingLink = () => {
+    if (!salon) return;
+    const url =
+      typeof window !== "undefined"
+        ? `${window.location.origin}/salon/${salon.slug}`
+        : `/salon/${salon.slug}`;
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "✅ Link copied!",
+      description: "Your public booking page link has been copied.",
+    });
+  };
+
   if (loading) {
     return (
       <SalonAdminLayout>
@@ -243,6 +262,65 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Prominent Booking Link Card */}
+        {salon && (
+          <Card className="border-2 border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-md hover:shadow-lg transition-all">
+            <CardContent className="p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <Store className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg text-slate-800 dark:text-white">
+                      Your Public Booking Page
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+                      Share this link with your clients to accept bookings
+                      online 24/7
+                    </p>
+                    <div className="flex items-center gap-2 bg-white dark:bg-slate-800 rounded-lg p-2 border border-slate-200 dark:border-slate-700">
+                      <span className="flex-1 text-sm font-mono text-purple-700 dark:text-purple-300 truncate px-2">
+                        {typeof window !== "undefined"
+                          ? `${window.location.origin}/salon/${salon.slug}`
+                          : `/salon/${salon.slug}`}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={copyBookingLink}
+                        className="flex-shrink-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      >
+                        <Copy className="w-4 h-4 mr-1" />
+                        Copy
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        asChild
+                        className="flex-shrink-0 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      >
+                        <a
+                          href={
+                            typeof window !== "undefined"
+                              ? `/salon/${salon.slug}`
+                              : "#"
+                          }
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <ExternalLink className="w-4 h-4 mr-1" />
+                          Preview
+                        </a>
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -384,51 +462,66 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        {/* Salon Info Card (if needed) */}
+        {/* Minimized Salon Info */}
         {salon && (
           <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
-            <CardHeader className="p-4 sm:p-6">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                Salon Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-2 sm:p-6 pt-0">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
-                  <p className="text-xs text-purple-600 dark:text-purple-400">
-                    Salon Name
-                  </p>
-                  <p className="text-sm font-medium text-slate-800 dark:text-white">
-                    {salon.name}
-                  </p>
+            <CardHeader
+              className="p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+              onClick={() => setShowSalonInfo(!showSalonInfo)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Store className="w-5 h-5 text-purple-500" />
+                  <CardTitle className="text-lg">Salon Details</CardTitle>
                 </div>
-                <div className="p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
-                  <p className="text-xs text-pink-600 dark:text-pink-400">
-                    Location
-                  </p>
-                  <p className="text-sm font-medium text-slate-800 dark:text-white">
-                    {salon.city}
-                  </p>
-                </div>
-                <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
-                  <p className="text-xs text-purple-600 dark:text-purple-400">
-                    Email
-                  </p>
-                  <p className="text-sm font-medium text-slate-800 dark:text-white">
-                    {salon.email}
-                  </p>
-                </div>
-                <div className="p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
-                  <p className="text-xs text-pink-600 dark:text-pink-400">
-                    Phone
-                  </p>
-                  <p className="text-sm font-medium text-slate-800 dark:text-white">
-                    {salon.phone}
-                  </p>
-                </div>
+                <Button variant="ghost" size="sm" className="p-0 h-8 w-8">
+                  {showSalonInfo ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                </Button>
               </div>
-            </CardContent>
+            </CardHeader>
+
+            {showSalonInfo && (
+              <CardContent className="p-4 pt-0">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                    <p className="text-xs text-purple-600 dark:text-purple-400">
+                      Salon Name
+                    </p>
+                    <p className="text-sm font-medium text-slate-800 dark:text-white">
+                      {salon.name}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
+                    <p className="text-xs text-pink-600 dark:text-pink-400">
+                      Location
+                    </p>
+                    <p className="text-sm font-medium text-slate-800 dark:text-white">
+                      {salon.city}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                    <p className="text-xs text-purple-600 dark:text-purple-400">
+                      Email
+                    </p>
+                    <p className="text-sm font-medium text-slate-800 dark:text-white break-all">
+                      {salon.email}
+                    </p>
+                  </div>
+                  <div className="p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
+                    <p className="text-xs text-pink-600 dark:text-pink-400">
+                      Phone
+                    </p>
+                    <p className="text-sm font-medium text-slate-800 dark:text-white">
+                      {salon.phone}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            )}
           </Card>
         )}
       </div>
