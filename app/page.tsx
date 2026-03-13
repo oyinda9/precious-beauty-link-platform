@@ -245,7 +245,7 @@ export default function Home() {
             <div className="flex items-center gap-3">
               <Link href="/register-salon-owner">
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all">
-                  Start Free Trial
+                  Get Started
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -287,7 +287,7 @@ export default function Home() {
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-12">
-                <Link href="/salon/register">
+                <Link href="/salon/register-salon-owner">
                   <Button
                     size="lg"
                     className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto px-8 group"
