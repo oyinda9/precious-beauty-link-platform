@@ -212,8 +212,8 @@ export default function RegisterSalonOwnerPage() {
         const data = await res.json();
         throw new Error(data.error || "Registration failed");
       }
-      setSuccess("Salon created successfully! Redirecting to your dashboard...");
-      setTimeout(() => router.push("/salon-admin/dashboard"), 1500);
+      setSuccess("Salon created successfully! Redirecting to login...");
+      setTimeout(() => router.push("/login?success=1"), 1500);
     } catch (error: any) {
       setError(error.message || "An error occurred. Please try again.");
     } finally {
@@ -242,7 +242,7 @@ export default function RegisterSalonOwnerPage() {
         <div className="absolute w-96 h-96 bg-pink-300/30 rounded-full blur-3xl animate-[blob_7s_infinite_2s] top-1/2 -right-20"></div>
         <div className="absolute w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_4s] bottom-0 left-1/3"></div>
         <div className="absolute w-80 h-80 bg-pink-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_1s] top-20 right-1/4"></div>
-        
+
         {/* Floating small balls */}
         <div className="absolute w-16 h-16 bg-purple-400/30 rounded-full animate-[float-slow_8s_ease-in-out_infinite] top-1/4 left-1/4"></div>
         <div className="absolute w-24 h-24 bg-pink-400/30 rounded-full animate-[float-medium_6s_ease-in-out_infinite] top-2/3 left-1/5"></div>
@@ -253,7 +253,7 @@ export default function RegisterSalonOwnerPage() {
       </div>
 
       {/* Interactive ball that follows mouse */}
-      <div 
+      <div
         className="absolute w-40 h-40 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-xl opacity-20 transition-all duration-300 ease-out pointer-events-none"
         style={{
           transform: `translate(${mousePosition.x - 80}px, ${mousePosition.y - 80}px)`,
@@ -365,13 +365,19 @@ export default function RegisterSalonOwnerPage() {
               <form onSubmit={handleAccountSubmit} className="space-y-5">
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
-                    <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
+                    <AlertCircle
+                      className="text-red-500 mt-0.5 shrink-0"
+                      size={18}
+                    />
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="fullName" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="fullName"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Full Name <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -389,7 +395,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="email"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Email <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -408,7 +417,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Password <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -435,7 +447,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="phone"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Phone Number
                   </Label>
                   <div className="relative">
@@ -477,13 +492,19 @@ export default function RegisterSalonOwnerPage() {
               <form onSubmit={handleSalonSubmit} className="space-y-5">
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
-                    <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
+                    <AlertCircle
+                      className="text-red-500 mt-0.5 shrink-0"
+                      size={18}
+                    />
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
 
                 <div className="space-y-2">
-                  <Label htmlFor="salonName" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="salonName"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Salon Name <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -501,7 +522,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="salonSlug" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="salonSlug"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Salon URL <span className="text-red-500">*</span>
                   </Label>
                   <div className="flex gap-2">
@@ -519,7 +543,10 @@ export default function RegisterSalonOwnerPage() {
                     </div>
                     <div className="w-12 h-12 flex items-center justify-center">
                       {slugChecking && (
-                        <Loader2 size={24} className="animate-spin text-purple-600" />
+                        <Loader2
+                          size={24}
+                          className="animate-spin text-purple-600"
+                        />
                       )}
                       {!slugChecking && slugAvailable === true && (
                         <CheckCircle2 size={24} className="text-green-500" />
@@ -538,7 +565,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="salonAddress" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="salonAddress"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Street Address <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
@@ -557,7 +587,10 @@ export default function RegisterSalonOwnerPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="salonCity" className="text-sm font-medium text-gray-700">
+                    <Label
+                      htmlFor="salonCity"
+                      className="text-sm font-medium text-gray-700"
+                    >
                       City <span className="text-red-500">*</span>
                     </Label>
                     <Input
@@ -571,7 +604,10 @@ export default function RegisterSalonOwnerPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="salonState" className="text-sm font-medium text-gray-700">
+                    <Label
+                      htmlFor="salonState"
+                      className="text-sm font-medium text-gray-700"
+                    >
                       State
                     </Label>
                     <Input
@@ -586,7 +622,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="salonPhone" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="salonPhone"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     Salon Phone
                   </Label>
                   <div className="relative">
@@ -604,7 +643,10 @@ export default function RegisterSalonOwnerPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="salonDescription" className="text-sm font-medium text-gray-700">
+                  <Label
+                    htmlFor="salonDescription"
+                    className="text-sm font-medium text-gray-700"
+                  >
                     About Your Salon
                   </Label>
                   <textarea
@@ -644,28 +686,54 @@ export default function RegisterSalonOwnerPage() {
               <form onSubmit={handlePlanSubmit} className="space-y-6">
                 {error && (
                   <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
-                    <AlertCircle className="text-red-500 mt-0.5 shrink-0" size={18} />
+                    <AlertCircle
+                      className="text-red-500 mt-0.5 shrink-0"
+                      size={18}
+                    />
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
                 {success && (
                   <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex gap-3">
-                    <CheckCircle2 className="text-green-500 mt-0.5 shrink-0" size={18} />
+                    <CheckCircle2
+                      className="text-green-500 mt-0.5 shrink-0"
+                      size={18}
+                    />
                     <p className="text-sm text-green-600">{success}</p>
                   </div>
                 )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {[
-                    { key: "free", name: "Free / Trial", price: "₦0/mo", desc: "Up to 2 staff, 5 bookings/mo, basic dashboard" },
-                    { key: "basic", name: "Basic", price: "₦15,000/mo", desc: "Up to 5 staff, unlimited bookings, WhatsApp notifications (5/mo)" },
-                    { key: "standard", name: "Standard", price: "₦25,000/mo", desc: "Up to 15 staff, unlimited bookings, WhatsApp & SMS notifications, priority support" },
-                    { key: "premium", name: "Premium", price: "₦50,000/mo", desc: "Unlimited staff, all features, priority support" },
+                    {
+                      key: "free",
+                      name: "Free / Trial",
+                      price: "₦0/mo",
+                      desc: "Up to 2 staff, 5 bookings/mo, basic dashboard",
+                    },
+                    {
+                      key: "basic",
+                      name: "Basic",
+                      price: "₦15,000/mo",
+                      desc: "Up to 5 staff, unlimited bookings, WhatsApp notifications (5/mo)",
+                    },
+                    {
+                      key: "standard",
+                      name: "Standard",
+                      price: "₦25,000/mo",
+                      desc: "Up to 15 staff, unlimited bookings, WhatsApp & SMS notifications, priority support",
+                    },
+                    {
+                      key: "premium",
+                      name: "Premium",
+                      price: "₦50,000/mo",
+                      desc: "Unlimited staff, all features, priority support",
+                    },
                   ].map((plan) => (
-                    <label 
-                      key={plan.key} 
+                    <label
+                      key={plan.key}
                       className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:shadow-lg ${
-                        selectedPlan === plan.key 
-                          ? "border-purple-600 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md" 
+                        selectedPlan === plan.key
+                          ? "border-purple-600 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md"
                           : "border-gray-200 bg-white hover:border-purple-300"
                       }`}
                     >
@@ -678,21 +746,29 @@ export default function RegisterSalonOwnerPage() {
                         className="absolute opacity-0"
                       />
                       <div className="flex items-start gap-3">
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
-                          selectedPlan === plan.key 
-                            ? "border-purple-600 bg-purple-600" 
-                            : "border-gray-300"
-                        }`}>
+                        <div
+                          className={`w-5 h-5 rounded-full border-2 flex items-center justify-center mt-0.5 ${
+                            selectedPlan === plan.key
+                              ? "border-purple-600 bg-purple-600"
+                              : "border-gray-300"
+                          }`}
+                        >
                           {selectedPlan === plan.key && (
                             <div className="w-2 h-2 rounded-full bg-white"></div>
                           )}
                         </div>
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
-                            <span className="font-bold text-lg">{plan.name}</span>
-                            <span className="text-purple-600 font-semibold">{plan.price}</span>
+                            <span className="font-bold text-lg">
+                              {plan.name}
+                            </span>
+                            <span className="text-purple-600 font-semibold">
+                              {plan.price}
+                            </span>
                           </div>
-                          <div className="text-sm text-gray-600 mt-1">{plan.desc}</div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            {plan.desc}
+                          </div>
                         </div>
                       </div>
                     </label>
@@ -732,18 +808,20 @@ export default function RegisterSalonOwnerPage() {
           </CardContent>
         </Card>
 
-        {/* Benefits Card */}
+        {/* Benefits Card (No Free Trial) */}
         <Card className="mt-6 bg-white/80 backdrop-blur-xl border-2 border-white/50 shadow-xl">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span className="text-sm text-gray-600">14-day free trial</span>
+                <span className="text-sm text-gray-600">No hidden fees</span>
               </div>
               <div className="hidden sm:block w-px h-8 bg-gray-200" />
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
-                <span className="text-sm text-gray-600">No credit card required</span>
+                <span className="text-sm text-gray-600">
+                  No credit card required
+                </span>
               </div>
               <div className="hidden sm:block w-px h-8 bg-gray-200" />
               <div className="flex items-center gap-2">
@@ -758,30 +836,71 @@ export default function RegisterSalonOwnerPage() {
       {/* Add keyframes to your global CSS or use Tailwind's arbitrary values */}
       <style jsx>{`
         @keyframes blob {
-          0%, 100% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
+          0%,
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
         }
         @keyframes float-slow {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
         }
         @keyframes float-medium {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-30px) translateX(-15px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-30px) translateX(-15px);
+          }
         }
         @keyframes float-fast {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-40px) translateX(20px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-40px) translateX(20px);
+          }
         }
         @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(5deg); }
+          0%,
+          100% {
+            transform: translateY(0px) rotate(0deg);
+          }
+          50% {
+            transform: translateY(-20px) rotate(5deg);
+          }
         }
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-          20%, 40%, 60%, 80% { transform: translateX(2px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          10%,
+          30%,
+          50%,
+          70%,
+          90% {
+            transform: translateX(-2px);
+          }
+          20%,
+          40%,
+          60%,
+          80% {
+            transform: translateX(2px);
+          }
         }
       `}</style>
     </div>

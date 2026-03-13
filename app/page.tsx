@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -186,19 +186,23 @@ export default function Home() {
   const faqs = [
     {
       question: "How does the free trial work?",
-      answer: "Start your 14-day free trial with no credit card required. You'll have access to all features to test drive SalonBook for your business.",
+      answer:
+        "Start your 14-day free trial with no credit card required. You'll have access to all features to test drive SalonBook for your business.",
     },
     {
       question: "Can I import my existing client data?",
-      answer: "Yes! We provide easy tools to import your client list and appointment history from spreadsheets or other booking systems.",
+      answer:
+        "Yes! We provide easy tools to import your client list and appointment history from spreadsheets or other booking systems.",
     },
     {
       question: "What payment methods do you support?",
-      answer: "We support all major payment methods including cards, bank transfers, and mobile money. You can collect deposits or full payments online.",
+      answer:
+        "We support all major payment methods including cards, bank transfers, and mobile money. You can collect deposits or full payments online.",
     },
     {
       question: "Do you offer training for my staff?",
-      answer: "Absolutely! We provide onboarding support, video tutorials, and documentation to get your entire team up to speed quickly.",
+      answer:
+        "Absolutely! We provide onboarding support, video tutorials, and documentation to get your entire team up to speed quickly.",
     },
   ];
 
@@ -288,7 +292,7 @@ export default function Home() {
                     size="lg"
                     className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto px-8 group"
                   >
-                    Start 14-Day Free Trial
+                    Get Started
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
@@ -304,11 +308,7 @@ export default function Home() {
 
               {/* Trust Badges */}
               <div className="flex flex-wrap gap-6">
-                {[
-                  "No credit card required",
-                  "14-day free trial",
-                  "24/7 support",
-                ].map((badge) => (
+                {["No credit card required", "24/7 support"].map((badge) => (
                   <div key={badge} className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
                     <span className="text-sm text-slate-600">{badge}</span>
@@ -550,7 +550,10 @@ export default function Home() {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-16 lg:py-24 bg-gradient-to-b from-slate-50 to-white">
+      <section
+        id="testimonials"
+        className="py-16 lg:py-24 bg-gradient-to-b from-slate-50 to-white"
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12 lg:mb-16">
             <h2 className="text-3xl lg:text-4xl font-bold text-slate-900 mb-4">
@@ -608,47 +611,13 @@ export default function Home() {
               Simple, Transparent Pricing
             </h2>
             <p className="text-lg text-slate-600 max-w-2xl mx-auto">
-              Choose the perfect plan for your salon. All plans include a 14-day free trial.
+              Choose the perfect plan for your salon. Simple, transparent
+              pricing.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Free Plan */}
-            <Card className="border-2 border-slate-200 hover:border-purple-200 transition-all group">
-              <CardHeader className="bg-gradient-to-r from-slate-100 to-slate-50 rounded-t-lg">
-                <CardTitle className="text-xl">Free Trial</CardTitle>
-                <CardDescription className="text-slate-500">
-                  Try before you buy
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="text-center mb-4">
-                  <span className="text-4xl font-bold text-slate-900">₦0</span>
-                  <span className="text-slate-500 text-base">/14 days</span>
-                </div>
-                <ul className="space-y-3 mb-6">
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Up to 2 staff members</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>5 bookings per month</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm">
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                    <span>Basic dashboard</span>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-slate-400">
-                    <X className="h-4 w-4" />
-                    <span className="line-through">SMS notifications</span>
-                  </li>
-                </ul>
-                <Button variant="outline" className="w-full group-hover:border-purple-600" asChild>
-                  <Link href="/register-salon-owner">Start Free Trial</Link>
-                </Button>
-              </CardContent>
-            </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* No Free Plan - free trial card removed */}
 
             {/* Basic Plan */}
             <Card className="border-2 border-purple-200 hover:shadow-xl transition-all group relative overflow-hidden">
@@ -663,7 +632,9 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center mb-4">
-                  <span className="text-4xl font-bold text-slate-900">₦15k</span>
+                  <span className="text-4xl font-bold text-slate-900">
+                    ₦15k
+                  </span>
                   <span className="text-slate-500 text-base">/month</span>
                 </div>
                 <ul className="space-y-3 mb-6">
@@ -684,7 +655,10 @@ export default function Home() {
                     <span className="line-through">SMS notifications</span>
                   </li>
                 </ul>
-                <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white" asChild>
+                <Button
+                  className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white"
+                  asChild
+                >
                   <Link href="/register-salon-owner">Choose Basic</Link>
                 </Button>
               </CardContent>
@@ -700,7 +674,9 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center mb-4">
-                  <span className="text-4xl font-bold text-slate-900">₦25k</span>
+                  <span className="text-4xl font-bold text-slate-900">
+                    ₦25k
+                  </span>
                   <span className="text-slate-500 text-base">/month</span>
                 </div>
                 <ul className="space-y-3 mb-6">
@@ -725,7 +701,10 @@ export default function Home() {
                     <span>Priority support</span>
                   </li>
                 </ul>
-                <Button className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white" asChild>
+                <Button
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white"
+                  asChild
+                >
                   <Link href="/register-salon-owner">Choose Standard</Link>
                 </Button>
               </CardContent>
@@ -741,7 +720,9 @@ export default function Home() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="text-center mb-4">
-                  <span className="text-4xl font-bold text-slate-900">₦50k</span>
+                  <span className="text-4xl font-bold text-slate-900">
+                    ₦50k
+                  </span>
                   <span className="text-slate-500 text-base">/month</span>
                 </div>
                 <ul className="space-y-3 mb-6">
@@ -766,7 +747,10 @@ export default function Home() {
                     <span>Custom integrations</span>
                   </li>
                 </ul>
-                <Button className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 text-white" asChild>
+                <Button
+                  className="w-full bg-gradient-to-r from-yellow-500 to-amber-500 text-white"
+                  asChild
+                >
                   <Link href="/register-salon-owner">Choose Premium</Link>
                 </Button>
               </CardContent>
@@ -823,7 +807,7 @@ export default function Home() {
                       variant="secondary"
                       className="bg-white text-purple-600 hover:bg-slate-100 shadow-lg hover:shadow-xl transition-all w-full sm:w-auto px-8 group"
                     >
-                      Start 14-Day Free Trial
+                      Get Started
                       <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                     </Button>
                   </Link>
@@ -837,7 +821,7 @@ export default function Home() {
                   </Button>
                 </div>
                 <p className="text-white/80 text-sm mt-6">
-                  No credit card required • 14-day free trial • Cancel anytime
+                  No credit card required • Cancel anytime
                 </p>
               </div>
             </CardContent>
@@ -855,16 +839,16 @@ export default function Home() {
             >
               <X className="h-5 w-5" />
             </button>
-            
+
             <div className="p-6">
               <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center mx-auto mb-4">
                 <MessageCircle className="h-8 w-8 text-white" />
               </div>
-              
+
               <h3 className="text-2xl font-bold text-center text-slate-900 mb-2">
                 Schedule a Demo
               </h3>
-              
+
               <p className="text-center text-slate-600 mb-6">
                 Choose how you'd like to connect with us:
               </p>
@@ -882,7 +866,9 @@ export default function Home() {
                     </div>
                     <div className="text-left">
                       <p className="font-semibold text-slate-900">WhatsApp</p>
-                      <p className="text-sm text-slate-600">Chat with us instantly</p>
+                      <p className="text-sm text-slate-600">
+                        Chat with us instantly
+                      </p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-green-600 group-hover:translate-x-1 transition-transform" />
@@ -898,7 +884,9 @@ export default function Home() {
                     </div>
                     <div className="text-left">
                       <p className="font-semibold text-slate-900">Phone Call</p>
-                      <p className="text-sm text-slate-600">+234 813 282 8531</p>
+                      <p className="text-sm text-slate-600">
+                        +234 813 282 8531
+                      </p>
                     </div>
                   </div>
                   <ChevronRight className="h-5 w-5 text-blue-600 group-hover:translate-x-1 transition-transform" />
@@ -922,10 +910,18 @@ export default function Home() {
 
       <style jsx>{`
         @keyframes blob {
-          0% { transform: translate(0px, 0px) scale(1); }
-          33% { transform: translate(30px, -50px) scale(1.1); }
-          66% { transform: translate(-20px, 20px) scale(0.9); }
-          100% { transform: translate(0px, 0px) scale(1); }
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
         }
         .animate-blob {
           animation: blob 7s infinite;
