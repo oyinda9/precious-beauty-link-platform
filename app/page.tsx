@@ -801,7 +801,7 @@ export default function Home() {
                   no-shows, and growing their revenue with SalonBook.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link href="/salon/register">
+                  <Link href="/register-salon-owner">
                     <Button
                       size="lg"
                       variant="secondary"
