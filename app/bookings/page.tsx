@@ -18,7 +18,15 @@ import {
   CheckCircle,
   AlertCircle,
   Home,
+  Plus,
 } from "lucide-react";
+
+interface BookingService {
+  id: string;
+  name: string;
+  duration: number;
+  price: number;
+}
 
 interface ClientBooking {
   id: string;
@@ -28,17 +36,13 @@ interface ClientBooking {
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
   totalPrice: number;
   notes?: string;
+  services: BookingService[];
   salon: {
     id: string;
     name: string;
     slug: string;
     address: string;
     city: string;
-  };
-  service: {
-    id: string;
-    name: string; 
-    duration: number;
   };
 }
 
@@ -151,7 +155,6 @@ export default function ClientBookingsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       {/* Mobile Header */}
-      {/* Mobile Header + Slide Menu */}
       <div className="lg:hidden bg-white border-b border-purple-100 sticky top-0 z-40 flex items-center justify-between px-4 py-3">
         <button
           onClick={() => setMobileMenuOpen((v) => !v)}
@@ -171,7 +174,7 @@ export default function ClientBookingsPage() {
             </p>
           </div>
         </div>
-        <div className="w-5 h-5" /> {/* Spacer for symmetry */}
+        <div className="w-5 h-5" />
       </div>
 
       {/* Mobile Slide-out Menu */}
@@ -287,20 +290,7 @@ export default function ClientBookingsPage() {
           </Card>
         ) : (
           <div className="space-y-6">
-            {/* Desktop Header with Stats */}
-            <div className="hidden lg:flex items-center justify-between mb-6">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Your Appointments
-                </h2>
-                <p className="text-gray-600">
-                  You have {bookings.length} total appointment
-                  {bookings.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-            </div>
-
-            {/* Status Filter Chips - Mobile & Desktop */}
+            {/* Status Filter Chips */}
             <div className="flex flex-wrap gap-2 mb-6">
               {["ALL", "PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"].map(
                 (status) => (
@@ -367,38 +357,59 @@ export default function ClientBookingsPage() {
                           <span className="text-xs">
                             {new Date(booking.bookingDate).toLocaleDateString(
                               "en-US",
-                              {
-                                month: "short",
-                                day: "numeric",
-                              },
+                              { month: "short", day: "numeric" },
                             )}
                           </span>
                         </div>
 
                         {/* Content */}
-                        <div className="p-4 space-y-5">
-                          {/* Salon & Service */}
-                          <div className="space-y-1">
+                        <div className="p-4 space-y-4">
+                          {/* Salon */}
+                          <div>
                             <h3 className="font-bold text-gray-900 text-lg">
                               {booking.salon.name}
                             </h3>
-                            <div className="flex items-center gap-2 mt-1">
-                              <Scissors className="w-4 h-4 text-purple-500" />
-                              <p className="text-sm text-gray-600">
-                                {booking.service.name} • {booking.service.duration} mins
-                              </p>
-                            </div>
                             <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
                               <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">
+                              <span>
                                 {booking.salon.address}, {booking.salon.city}
                               </span>
                             </div>
                           </div>
 
+                          {/* Services */}
+                          <div className="space-y-2">
+                            <p className="text-xs font-medium text-gray-500 uppercase">
+                              Services ({booking.services.length})
+                            </p>
+                            <div className="space-y-2">
+                              {booking.services.map((service) => (
+                                <div
+                                  key={service.id}
+                                  className="flex items-center justify-between bg-purple-50 rounded-lg p-3"
+                                >
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <Scissors className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {service.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {service.duration} mins
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm font-medium text-purple-600 flex-shrink-0 ml-2">
+                                    ₦{service.price.toLocaleString()}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
                           {/* Date & Time */}
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="bg-purple-50 rounded-lg p-3 flex flex-col items-start">
+                          <div className="grid grid-cols-2 gap-3 pt-2">
+                            <div className="bg-purple-50 rounded-lg p-3">
                               <Calendar className="w-4 h-4 text-purple-600 mb-1" />
                               <p className="text-xs text-gray-600">Date</p>
                               <p className="font-medium text-sm">
@@ -411,7 +422,7 @@ export default function ClientBookingsPage() {
                                 })}
                               </p>
                             </div>
-                            <div className="bg-pink-50 rounded-lg p-3 flex flex-col items-start">
+                            <div className="bg-pink-50 rounded-lg p-3">
                               <Clock className="w-4 h-4 text-pink-600 mb-1" />
                               <p className="text-xs text-gray-600">Time</p>
                               <p className="font-medium text-sm">
@@ -423,7 +434,7 @@ export default function ClientBookingsPage() {
                           {/* Notes */}
                           {booking.notes && (
                             <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic">
-                              " {booking.notes} "
+                              "{booking.notes}"
                             </div>
                           )}
 
@@ -453,100 +464,132 @@ export default function ClientBookingsPage() {
 
                       {/* Desktop Layout */}
                       <div className="hidden lg:block p-6">
-                        <div className="grid grid-cols-12 gap-6">
-                          {/* Salon & Service - 5 columns */}
-                          <div className="col-span-5">
-                            <div className="flex items-start gap-3">
-                              <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-3">
-                                <Scissors className="w-6 h-6 text-purple-600" />
+                        <div className="space-y-4">
+                          {/* Header Row */}
+                          <div className="grid grid-cols-12 gap-6 pb-4 border-b border-purple-100">
+                            {/* Salon - 4 columns */}
+                            <div className="col-span-4">
+                              <div className="flex items-start gap-3">
+                                <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-xl p-3 flex-shrink-0">
+                                  <Scissors className="w-6 h-6 text-purple-600" />
+                                </div>
+                                <div>
+                                  <h3 className="text-lg font-bold text-gray-900">
+                                    {booking.salon.name}
+                                  </h3>
+                                  <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
+                                    <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                                    <span>
+                                      {booking.salon.address},{" "}
+                                      {booking.salon.city}
+                                    </span>
+                                  </div>
+                                </div>
                               </div>
+                            </div>
+
+                            {/* Date & Time - 3 columns */}
+                            <div className="col-span-3">
+                              <div className="space-y-3">
+                                <div className="flex items-center gap-3">
+                                  <Calendar className="w-5 h-5 text-purple-500" />
+                                  <div>
+                                    <p className="text-xs text-gray-500">
+                                      Date
+                                    </p>
+                                    <p className="font-medium">
+                                      {new Date(
+                                        booking.bookingDate,
+                                      ).toLocaleDateString("en-US", {
+                                        weekday: "short",
+                                        month: "short",
+                                        day: "numeric",
+                                      })}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                  <Clock className="w-5 h-5 text-pink-500" />
+                                  <div>
+                                    <p className="text-xs text-gray-500">
+                                      Time
+                                    </p>
+                                    <p className="font-medium">
+                                      {formatTime(booking.startTime)} -{" "}
+                                      {formatTime(booking.endTime)}
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Status & Price - 5 columns */}
+                            <div className="col-span-5 flex items-start justify-between">
                               <div>
-                                <h3 className="text-lg font-bold text-gray-900">
-                                  {booking.salon.name}
-                                </h3>
-                                <p className="text-sm text-gray-600 mt-1">
-                                  {booking.service.name}
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                  Duration: {booking.service.duration} mins
-                                </p>
-                                <div className="flex items-start gap-2 mt-2 text-sm text-gray-600">
-                                  <MapPin className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
-                                  <span>
-                                    {booking.salon.address},{" "}
-                                    {booking.salon.city}
-                                  </span>
-                                </div>
-                                {booking.notes && (
-                                  <p className="text-sm text-gray-600 mt-2 italic bg-gray-50 p-2 rounded">
-                                    "{booking.notes}"
+                                <Badge
+                                  className={`${getStatusColor(booking.status)} border-0 flex items-center gap-1 px-3 py-1`}
+                                >
+                                  {getStatusIcon(booking.status)}
+                                  {booking.status}
+                                </Badge>
+                                <div className="mt-4">
+                                  <p className="text-xs text-gray-500">
+                                    Total Amount
                                   </p>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Date & Time - 3 columns */}
-                          <div className="col-span-3">
-                            <div className="space-y-3">
-                              <div className="flex items-center gap-3">
-                                <Calendar className="w-5 h-5 text-purple-500" />
-                                <div>
-                                  <p className="text-xs text-gray-500">Date</p>
-                                  <p className="font-medium">
-                                    {new Date(
-                                      booking.bookingDate,
-                                    ).toLocaleDateString("en-US", {
-                                      weekday: "short",
-                                      month: "short",
-                                      day: "numeric",
-                                      year: "numeric",
-                                    })}
+                                  <p className="text-2xl font-bold text-purple-600">
+                                    ₦{booking.totalPrice.toLocaleString()}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-3">
-                                <Clock className="w-5 h-5 text-pink-500" />
-                                <div>
-                                  <p className="text-xs text-gray-500">Time</p>
-                                  <p className="font-medium">
-                                    {formatTime(booking.startTime)} -{" "}
-                                    {formatTime(booking.endTime)}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Status & Price - 4 columns */}
-                          <div className="col-span-4 flex items-start justify-between">
-                            <div>
-                              <Badge
-                                className={`${getStatusColor(booking.status)} border-0 flex items-center gap-1 px-3 py-1`}
+                              <Button
+                                variant="ghost"
+                                onClick={() =>
+                                  router.push(`/salon/${booking.salon.slug}`)
+                                }
+                                className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
                               >
-                                {getStatusIcon(booking.status)}
-                                {booking.status}
-                              </Badge>
-                              <div className="mt-4">
-                                <p className="text-xs text-gray-500">
-                                  Total Amount
-                                </p>
-                                <p className="text-2xl font-bold text-purple-600">
-                                  ₦{booking.totalPrice.toLocaleString()}
-                                </p>
-                              </div>
+                                View Details{" "}
+                                <ArrowRight className="w-4 h-4 ml-1" />
+                              </Button>
                             </div>
-                            <Button
-                              variant="ghost"
-                              onClick={() =>
-                                router.push(`/salon/${booking.salon.slug}`)
-                              }
-                              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
-                            >
-                              View Details{" "}
-                              <ArrowRight className="w-4 h-4 ml-1" />
-                            </Button>
                           </div>
+
+                          {/* Services Grid */}
+                          <div className="pt-2">
+                            <p className="text-sm font-medium text-gray-600 mb-3">
+                              Services ({booking.services.length})
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {booking.services.map((service) => (
+                                <div
+                                  key={service.id}
+                                  className="flex items-center justify-between bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg p-3 border border-purple-100"
+                                >
+                                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                                    <Scissors className="w-4 h-4 text-purple-600 flex-shrink-0" />
+                                    <div className="min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {service.name}
+                                      </p>
+                                      <p className="text-xs text-gray-500">
+                                        {service.duration} mins
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="text-sm font-medium text-purple-600 flex-shrink-0 ml-2">
+                                    ₦{service.price.toLocaleString()}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Notes */}
+                          {booking.notes && (
+                            <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic border border-gray-200 mt-3">
+                              "{booking.notes}"
+                            </div>
+                          )}
                         </div>
                       </div>
                     </CardContent>
@@ -556,12 +599,13 @@ export default function ClientBookingsPage() {
             </div>
 
             {/* Mobile Book More Button */}
-            <div className="lg:hidden fixed bottom-6 left-4 right-4">
+            <div className="lg:hidden pb-20">
               <Button
                 onClick={() => router.push("/")}
                 className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 gap-2 shadow-lg"
               >
-                Book More Appointments <ArrowRight size={16} />
+                <Plus size={16} />
+                Book More Services <ArrowRight size={16} />
               </Button>
             </div>
           </div>

@@ -35,6 +35,7 @@ import {
   Award,
   HeartHandshake,
   MessageCircle,
+  MapPin,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -46,6 +47,7 @@ export default function Home() {
     { name: "How It Works", href: "#how-it-works" },
     { name: "Pricing", href: "#pricing" },
     { name: "Testimonials", href: "#testimonials" },
+    { name: "Find Salons", href: "/salons/nearby" },
   ];
 
   const features = [
@@ -243,6 +245,15 @@ export default function Home() {
 
             {/* Auth Buttons */}
             <div className="flex items-center gap-3">
+              <Link href="/salons/nearby" className="hidden sm:block">
+                <Button
+                  variant="outline"
+                  className="border-purple-200 text-purple-600 hover:bg-purple-50"
+                >
+                  <MapPin className="mr-2 h-4 w-4" />
+                  Find Salons
+                </Button>
+              </Link>
               <Link href="/register-salon-owner">
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all">
                   Get Started
@@ -296,6 +307,18 @@ export default function Home() {
                     <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                   </Button>
                 </Link>
+
+                <Link href="/salons/nearby">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-2 hover:bg-slate-50 w-full sm:w-auto px-8"
+                  >
+                    <MapPin className="mr-2 h-5 w-5" />
+                    Find Nearby Salons
+                  </Button>
+                </Link>
+
                 <Button
                   size="lg"
                   variant="outline"

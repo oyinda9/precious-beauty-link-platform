@@ -21,6 +21,7 @@ import {
   Scissors,
   Building2,
 } from "lucide-react";
+import { NIGERIAN_STATES } from "@/lib/constants/nigerian-states";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -145,7 +146,9 @@ export default function RegisterSalonOwnerPage() {
   };
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+    >,
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -192,7 +195,8 @@ export default function RegisterSalonOwnerPage() {
       !formData.salonName ||
       !formData.salonSlug ||
       !formData.salonAddress ||
-      !formData.salonCity
+      !formData.salonCity ||
+      !formData.salonState
     ) {
       setError("Please fill in all required salon fields");
       return false;
@@ -259,6 +263,7 @@ export default function RegisterSalonOwnerPage() {
             salonSlug: formData.salonSlug,
             salonAddress: formData.salonAddress,
             salonCity: formData.salonCity,
+            salonState: formData.salonState,
             salonPhone: formData.salonPhone,
             plan: planKey,
           }),
@@ -720,16 +725,23 @@ export default function RegisterSalonOwnerPage() {
                       htmlFor="salonState"
                       className="text-sm font-medium text-gray-700"
                     >
-                      State
+                      State <span className="text-red-500">*</span>
                     </Label>
-                    <Input
+                    <select
                       id="salonState"
                       name="salonState"
-                      placeholder="Lagos State"
                       value={formData.salonState}
                       onChange={handleChange}
-                      className="h-12 border-2 border-gray-200 focus:border-purple-600 focus:ring-purple-600 rounded-xl transition-all"
-                    />
+                      required
+                      className="w-full h-12 px-4 border-2 border-gray-200 focus:border-purple-600 focus:ring-purple-600 rounded-xl transition-all bg-white"
+                    >
+                      <option value="">Select state</option>
+                      {NIGERIAN_STATES.map((state) => (
+                        <option key={state} value={state}>
+                          {state}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </div>
 
