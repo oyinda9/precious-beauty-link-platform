@@ -256,7 +256,7 @@ export default function LoginPage() {
           </Link>
 
           {/* Demo Credentials */}
-          <div className="mt-6 p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
+          {/* <div className="mt-6 p-5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
             <p className="text-xs font-semibold text-purple-700 mb-3 flex items-center gap-1">
               <Sparkles className="w-3 h-3" />
               Demo Credentials
@@ -299,7 +299,7 @@ export default function LoginPage() {
             <p className="text-[10px] text-gray-400 mt-3 text-center">
               Click on any demo account to auto-fill credentials
             </p>
-          </div>
+          </div> */}
         </CardContent>
       </Card>
 

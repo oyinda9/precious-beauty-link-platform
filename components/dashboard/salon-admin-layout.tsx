@@ -154,7 +154,7 @@ export default function SalonAdminLayout({
         className={`hidden lg:block bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-purple-200 dark:border-purple-800 h-screen fixed top-0 left-0 z-30 transition-all duration-300 ${
           sidebarCollapsed ? "w-20" : "w-64"
         }`}
-        style={{ minHeight: '100vh' }}
+        style={{ minHeight: "100vh" }}
       >
         <div className="p-4 h-full flex flex-col">
           {/* Logo */}
@@ -260,7 +260,7 @@ export default function SalonAdminLayout({
       {/* Main Content */}
       <main
         className="flex-1 relative lg:ml-64"
-        style={{ minHeight: '100vh', overflow: 'auto' }}
+        style={{ minHeight: "100vh", overflow: "auto" }}
       >
         <div className="px-4 lg:px-8 py-6 lg:py-8">{children}</div>
       </main>

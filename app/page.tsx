@@ -633,7 +633,7 @@ export default function Home() {
               <CardContent className="p-6">
                 <div className="text-center mb-4">
                   <span className="text-4xl font-bold text-slate-900">
-                    ₦15k
+                    ₦10k
                   </span>
                   <span className="text-slate-500 text-base">/month</span>
                 </div>
@@ -675,7 +675,7 @@ export default function Home() {
               <CardContent className="p-6">
                 <div className="text-center mb-4">
                   <span className="text-4xl font-bold text-slate-900">
-                    ₦25k
+                    ₦15k
                   </span>
                   <span className="text-slate-500 text-base">/month</span>
                 </div>
@@ -721,7 +721,7 @@ export default function Home() {
               <CardContent className="p-6">
                 <div className="text-center mb-4">
                   <span className="text-4xl font-bold text-slate-900">
-                    ₦50k
+                    ₦30k
                   </span>
                   <span className="text-slate-500 text-base">/month</span>
                 </div>

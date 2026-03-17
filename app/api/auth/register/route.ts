@@ -4,6 +4,15 @@ import { hashPassword, generateToken, setAuthCookie } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { apiError } from "@/lib/api-utils";
 
+const PLAN_MAP = {
+  free: "TRIAL",
+  basic: "STARTER",
+  standard: "PROFESSIONAL",
+  premium: "ENTERPRISE",
+} as const;
+
+type FrontendPlan = keyof typeof PLAN_MAP;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -13,12 +22,11 @@ export async function POST(request: NextRequest) {
       fullName,
       phone,
       role = UserRole.CLIENT,
-      // Salon owner fields
       salonName,
       salonSlug,
       salonAddress,
       salonCity,
-
+      salonPhone,
       plan = "free",
     } = body;
 
@@ -77,6 +85,15 @@ export async function POST(request: NextRequest) {
     ];
     const userRole = validRoles.includes(role) ? role : UserRole.CLIENT;
 
+    // Validate plan only for salon admin
+    const normalizedPlan = String(plan).toLowerCase() as FrontendPlan;
+    if (userRole === UserRole.SALON_ADMIN && !(normalizedPlan in PLAN_MAP)) {
+      return NextResponse.json(
+        { error: "Invalid plan selected" },
+        { status: 400 },
+      );
+    }
+
     // Create user
     const user = await prisma.user.create({
       data: {
@@ -99,7 +116,7 @@ export async function POST(request: NextRequest) {
           slug: salonSlug.toLowerCase(),
           address: salonAddress,
           city: salonCity,
-          phone: phone || "",
+          phone: salonPhone || phone || "",
           email: email,
           description: "",
           rating: 0,
@@ -124,11 +141,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Map frontend plan key to SubscriptionPlan enum
-      let planEnum: any = "TRIAL";
-      if (plan === "free") planEnum = "TRIAL";
-      else if (plan === "basic") planEnum = "STARTER";
-      else if (plan === "standard") planEnum = "PROFESSIONAL";
-      else if (plan === "premium") planEnum = "ENTERPRISE";
+      const planEnum = PLAN_MAP[normalizedPlan];
 
       // Create subscription record for the salon
       await prisma.subscription.create({

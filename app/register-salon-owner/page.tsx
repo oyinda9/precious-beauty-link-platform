@@ -34,13 +34,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 interface FormData {
-  // Account fields
   fullName: string;
   email: string;
   password: string;
   phone: string;
-
-  // Salon fields
   salonName: string;
   salonSlug: string;
   salonAddress: string;
@@ -50,27 +47,52 @@ interface FormData {
   salonPhone: string;
 }
 
+type PlanKey = "free" | "basic" | "standard" | "premium";
+
+const PLANS = [
+  {
+    key: "free" as PlanKey,
+    name: "Free / Trial",
+    price: "₦0/mo",
+    amount: 0,
+    desc: "Up to 2 staff, 5 bookings/mo, basic dashboard",
+  },
+  {
+    key: "basic" as PlanKey,
+    name: "Basic",
+    price: "₦10,000/mo",
+    amount: 10000,
+    desc: "Up to 5 staff, unlimited bookings, WhatsApp notifications",
+  },
+  {
+    key: "standard" as PlanKey,
+    name: "Standard",
+    price: "₦15,000/mo",
+    amount: 15000,
+    desc: "Up to 15 staff, unlimited bookings, priority support",
+  },
+  {
+    key: "premium" as PlanKey,
+    name: "Premium",
+    price: "₦30,000/mo",
+    amount: 30000,
+    desc: "Unlimited staff, all features, priority support",
+  },
+];
+
 export default function RegisterSalonOwnerPage() {
   const router = useRouter();
-  const [step, setStep] = useState<"account" | "salon" | "plan">("account");
+  const [step, setStep] = useState<"account" | "salon" | "plan" | "payment">(
+    "account",
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<string>("");
-
-  // Slug availability
+  const [selectedPlan, setSelectedPlan] = useState<PlanKey | "">("");
   const [slugChecking, setSlugChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY });
-    };
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
@@ -86,20 +108,28 @@ export default function RegisterSalonOwnerPage() {
     salonPhone: "",
   });
 
-  const generateSlug = (name: string) => {
-    return name
+  const [hasRegistered, setHasRegistered] = useState(false);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      setMousePosition({ x: e.clientX, y: e.clientY });
+    };
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  const generateSlug = (name: string) =>
+    name
       .toLowerCase()
       .trim()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-+|-+$/g, "");
-  };
 
   const checkSlugAvailability = async (slug: string) => {
     if (!slug || slug.length < 3) {
       setSlugAvailable(null);
       return;
     }
-
     setSlugChecking(true);
     try {
       const res = await fetch(
@@ -107,8 +137,7 @@ export default function RegisterSalonOwnerPage() {
       );
       const data = await res.json();
       setSlugAvailable(data.available);
-    } catch (err) {
-      console.error("Error checking slug:", err);
+    } catch {
       setSlugAvailable(null);
     } finally {
       setSlugChecking(false);
@@ -126,7 +155,6 @@ export default function RegisterSalonOwnerPage() {
   const handleSalonNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     handleChange(e);
-
     if (
       !formData.salonSlug ||
       formData.salonSlug === generateSlug(formData.salonName)
@@ -180,59 +208,142 @@ export default function RegisterSalonOwnerPage() {
     return true;
   };
 
-  const handlePlanSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedPlan) {
-      setError("Please select a plan to continue");
-      return;
-    }
-    setError("");
-    setLoading(true);
-    try {
-      const res = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
-          phone: formData.phone,
-          role: "SALON_ADMIN",
-          plan: selectedPlan,
-          salonName: formData.salonName,
-          salonSlug: formData.salonSlug,
-          salonAddress: formData.salonAddress,
-          salonCity: formData.salonCity,
-          salonState: formData.salonState,
-          salonDescription: formData.salonDescription,
-          salonPhone: formData.salonPhone,
-        }),
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Registration failed");
-      }
-      setSuccess("Salon created successfully! Redirecting to login...");
-      setTimeout(() => router.push("/login?success=1"), 1500);
-    } catch (error: any) {
-      setError(error.message || "An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleAccountSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateAccountStep()) {
+      setError("");
       setStep("salon");
     }
   };
 
   const handleSalonSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateSalonStep()) return;
-    setStep("plan");
+    if (validateSalonStep()) {
+      setError("");
+      setStep("plan");
+    }
   };
+
+  // After plan selected: free → register directly, paid → show card form
+  const handlePlanNext = () => {
+    if (!selectedPlan) {
+      setError("Please select a plan to continue");
+      return;
+    }
+    setError("");
+    if (selectedPlan === "free") {
+      handleRegisterAndActivate("free");
+    } else {
+      setStep("payment");
+    }
+  };
+
+  // Register account + process Monnify payment
+  const handleRegisterAndActivate = async (planKey: PlanKey) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      // Register only once
+      if (!hasRegistered) {
+        const regRes = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: formData.email,
+            password: formData.password,
+            fullName: formData.fullName,
+            phone: formData.phone,
+            role: "SALON_ADMIN",
+            salonName: formData.salonName,
+            salonSlug: formData.salonSlug,
+            salonAddress: formData.salonAddress,
+            salonCity: formData.salonCity,
+            salonPhone: formData.salonPhone,
+            plan: planKey,
+          }),
+        });
+
+        const regData = await regRes.json().catch(() => ({}));
+        if (!regRes.ok) {
+          const msg = String(regData?.error || "");
+          if (!msg.toLowerCase().includes("already registered")) {
+            throw new Error(regData?.error || "Registration failed");
+          }
+        }
+        setHasRegistered(true);
+      }
+
+      // login for auth cookie
+      const loginRes = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const loginData = await loginRes.json().catch(() => ({}));
+      if (!loginRes.ok) {
+        throw new Error(loginData?.error || "Login failed");
+      }
+
+      // ✅ get token from login response (if cookie is not set)
+      const authToken =
+        loginData?.token ||
+        loginData?.accessToken ||
+        loginData?.data?.token ||
+        "";
+
+      if (planKey === "free") {
+        setSuccess("Registration successful! Redirecting...");
+        setTimeout(() => router.push("/salon-admin/dashboard"), 1200);
+        return;
+      }
+
+      const payRes = await fetch("/api/payments/monnify/initialize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          planKey,
+          productName: "Salon Subscription",
+          productDescription: `${planKey} plan`,
+        }),
+      });
+
+      const payData = await payRes.json();
+      if (!payRes.ok) {
+        throw new Error(payData?.error || "Payment initialization failed");
+      }
+      if (!payData?.redirectUrl) {
+        throw new Error("Missing Monnify checkout URL");
+      }
+
+      window.location.href = payData.redirectUrl;
+      return; // ✅ prevent falling through
+    } catch (err: any) {
+      setError(err?.message || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePaymentSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPlan) {
+      setError("Please select a plan");
+      return;
+    }
+    handleRegisterAndActivate(selectedPlan as PlanKey);
+  };
+
+  const selectedPlanInfo = PLANS.find((p) => p.key === selectedPlan);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4 relative overflow-hidden">
@@ -273,7 +384,6 @@ export default function RegisterSalonOwnerPage() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="w-full max-w-2xl relative z-10">
         {/* Progress Steps - Desktop */}
         <div className="hidden lg:flex items-center justify-center gap-4 mb-8">
@@ -281,6 +391,7 @@ export default function RegisterSalonOwnerPage() {
             { label: "Account Details", key: "account" },
             { label: "Salon Setup", key: "salon" },
             { label: "Select Plan", key: "plan" },
+            { label: "Payment", key: "payment" },
           ].map((s, idx, arr) => (
             <div key={s.key} className="flex items-center gap-2">
               <div
@@ -330,23 +441,24 @@ export default function RegisterSalonOwnerPage() {
             </div>
 
             <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-              {step === "plan"
-                ? "Choose Your Plan"
-                : step === "account"
-                  ? "Start Your Journey"
-                  : "Setup Your Salon"}
+              {step === "account" && "Start Your Journey"}
+              {step === "salon" && "Setup Your Salon"}
+              {step === "plan" && "Choose Your Plan"}
+              {step === "payment" && "Complete Payment"}
             </CardTitle>
             <CardDescription className="text-base mt-2">
-              {step === "plan"
-                ? "Select the plan that fits your business. You can upgrade later."
-                : step === "account"
-                  ? "Create your account to begin managing your salon"
-                  : "Tell us about your salon to get started"}
+              {step === "account" &&
+                "Create your account to begin managing your salon"}
+              {step === "salon" && "Tell us about your salon to get started"}
+              {step === "plan" &&
+                "Select the plan that fits your business. You can upgrade later."}
+              {step === "payment" &&
+                "You will be redirected to Monnify secure checkout."}
             </CardDescription>
 
             {/* Mobile Progress Dots */}
             <div className="lg:hidden flex items-center justify-center gap-2 mt-4">
-              {["account", "salon", "plan"].map((s, idx) => (
+              {["account", "salon", "plan", "payment"].map((s, idx) => (
                 <div
                   key={s}
                   className={`h-2 rounded-full transition-all duration-300 ${
@@ -683,9 +795,9 @@ export default function RegisterSalonOwnerPage() {
 
             {/* Plan Step Form */}
             {step === "plan" && (
-              <form onSubmit={handlePlanSubmit} className="space-y-6">
+              <div className="space-y-6">
                 {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3 animate-[shake_0.5s_ease-in-out]">
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
                     <AlertCircle
                       className="text-red-500 mt-0.5 shrink-0"
                       size={18}
@@ -693,42 +805,8 @@ export default function RegisterSalonOwnerPage() {
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-                {success && (
-                  <div className="p-4 bg-green-50 border border-green-200 rounded-xl flex gap-3">
-                    <CheckCircle2
-                      className="text-green-500 mt-0.5 shrink-0"
-                      size={18}
-                    />
-                    <p className="text-sm text-green-600">{success}</p>
-                  </div>
-                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {[
-                    {
-                      key: "free",
-                      name: "Free / Trial",
-                      price: "₦0/mo",
-                      desc: "Up to 2 staff, 5 bookings/mo, basic dashboard",
-                    },
-                    {
-                      key: "basic",
-                      name: "Basic",
-                      price: "₦15,000/mo",
-                      desc: "Up to 5 staff, unlimited bookings, WhatsApp notifications (5/mo)",
-                    },
-                    {
-                      key: "standard",
-                      name: "Standard",
-                      price: "₦25,000/mo",
-                      desc: "Up to 15 staff, unlimited bookings, WhatsApp & SMS notifications, priority support",
-                    },
-                    {
-                      key: "premium",
-                      name: "Premium",
-                      price: "₦50,000/mo",
-                      desc: "Unlimited staff, all features, priority support",
-                    },
-                  ].map((plan) => (
+                  {PLANS.map((plan) => (
                     <label
                       key={plan.key}
                       className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:shadow-lg ${
@@ -742,7 +820,10 @@ export default function RegisterSalonOwnerPage() {
                         name="plan"
                         value={plan.key}
                         checked={selectedPlan === plan.key}
-                        onChange={() => setSelectedPlan(plan.key)}
+                        onChange={() => {
+                          setSelectedPlan(plan.key);
+                          setError("");
+                        }}
                         className="absolute opacity-0"
                       />
                       <div className="flex items-start gap-3">
@@ -754,7 +835,7 @@ export default function RegisterSalonOwnerPage() {
                           }`}
                         >
                           {selectedPlan === plan.key && (
-                            <div className="w-2 h-2 rounded-full bg-white"></div>
+                            <div className="w-2 h-2 rounded-full bg-white" />
                           )}
                         </div>
                         <div className="flex-1">
@@ -766,14 +847,15 @@ export default function RegisterSalonOwnerPage() {
                               {plan.price}
                             </span>
                           </div>
-                          <div className="text-sm text-gray-600 mt-1">
+                          <p className="text-sm text-gray-600 mt-1">
                             {plan.desc}
-                          </div>
+                          </p>
                         </div>
                       </div>
                     </label>
                   ))}
                 </div>
+
                 <div className="flex gap-3 pt-4">
                   <Button
                     type="button"
@@ -782,22 +864,93 @@ export default function RegisterSalonOwnerPage() {
                     onClick={() => setStep("salon")}
                     disabled={loading}
                   >
-                    <ChevronLeft className="mr-2 w-4 h-4" />
-                    Back
+                    <ChevronLeft className="mr-2 w-4 h-4" /> Back
                   </Button>
+
                   <Button
-                    type="submit"
-                    className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 rounded-xl shadow-lg hover:shadow-xl transition-all font-semibold disabled:opacity-50"
-                    disabled={loading}
+                    type="button"
+                    onClick={handlePlanNext}
+                    disabled={!selectedPlan || loading}
+                    className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {loading ? (
                       <>
                         <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                        Creating...
+                        Processing...
+                      </>
+                    ) : selectedPlan === "free" ? (
+                      <>
+                        Complete Registration
+                        <ChevronRight className="ml-2 w-4 h-4" />
                       </>
                     ) : (
                       <>
-                        Complete Registration
+                        Continue to Payment
+                        <ChevronRight className="ml-2 w-4 h-4" />
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Payment Step — Monnify hosted checkout */}
+            {step === "payment" && (
+              <form onSubmit={handlePaymentSubmit} className="space-y-5">
+                {error && (
+                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
+                    <AlertCircle
+                      className="text-red-500 mt-0.5 shrink-0"
+                      size={18}
+                    />
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                )}
+
+                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-purple-700">
+                      {selectedPlanInfo?.name} Plan
+                    </p>
+                    <p className="text-sm text-purple-500">
+                      {selectedPlanInfo?.desc}
+                    </p>
+                  </div>
+                  <span className="text-xl font-bold text-purple-700">
+                    {selectedPlanInfo?.price}
+                  </span>
+                </div>
+
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+                  Payment is completed on{" "}
+                  <strong>Monnify secure checkout</strong>. Click continue to
+                  proceed.
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1 h-12 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600 rounded-xl transition-all"
+                    onClick={() => setStep("plan")}
+                    disabled={loading}
+                  >
+                    <ChevronLeft className="mr-2 w-4 h-4" /> Back
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {loading ? (
+                      <>
+                        <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        Continue to Monnify
                         <ChevronRight className="ml-2 w-4 h-4" />
                       </>
                     )}
@@ -808,7 +961,6 @@ export default function RegisterSalonOwnerPage() {
           </CardContent>
         </Card>
 
-        {/* Benefits Card (No Free Trial) */}
         <Card className="mt-6 bg-white/80 backdrop-blur-xl border-2 border-white/50 shadow-xl">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8">
@@ -820,7 +972,7 @@ export default function RegisterSalonOwnerPage() {
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-500" />
                 <span className="text-sm text-gray-600">
-                  No credit card required
+                  Secured by Monnify Checkout
                 </span>
               </div>
               <div className="hidden sm:block w-px h-8 bg-gray-200" />
@@ -833,7 +985,6 @@ export default function RegisterSalonOwnerPage() {
         </Card>
       </div>
 
-      {/* Add keyframes to your global CSS or use Tailwind's arbitrary values */}
       <style jsx>{`
         @keyframes blob {
           0%,

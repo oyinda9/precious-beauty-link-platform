@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken, isSuperAdmin } from "@/lib/auth";
 import { apiError } from "@/lib/api-utils";
 import { SubscriptionStatus, SubscriptionPlan } from "@prisma/client";
+import { getSalonWithSubscriptionBySlug } from "@/lib/subscription";
 
 // GET subscription for a salon
 export async function GET(
@@ -10,10 +11,7 @@ export async function GET(
   { params }: { params: { slug: string } },
 ) {
   try {
-    const salon = await prisma.salon.findUnique({
-      where: { slug: params.slug },
-      include: { subscription: true },
-    });
+    const salon = await getSalonWithSubscriptionBySlug(params.slug);
 
     if (!salon) {
       return NextResponse.json({ error: "Salon not found" }, { status: 404 });
