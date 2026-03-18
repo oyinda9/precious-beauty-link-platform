@@ -31,12 +31,23 @@ import {
   CheckCircle,
   X,
   MessageSquare,
+  Loader2, // ✅ add
 } from "lucide-react";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
+
 // Types
+interface BookingService {
+  id?: string;
+  name: string;
+  duration: number;
+  price?: number;
+}
+
 interface Booking {
   id: string;
   bookingDate: string;
+  createdAt?: string;
+  updatedAt?: string;
   startTime: string;
   endTime: string;
   status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
@@ -50,10 +61,8 @@ interface Booking {
       phone: string;
     };
   };
-  service: {
-    name: string;
-    duration: number;
-  };
+  service?: BookingService; // single shape
+  services?: BookingService[]; // multi shape
   salon: {
     id: string;
     name: string;
@@ -64,6 +73,7 @@ interface Booking {
 export default function BookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
@@ -73,29 +83,88 @@ export default function BookingsPage() {
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(
     null,
   );
+
+  // ✅ Pagination state
+  const PAGE_SIZE = 8;
+  const [currentPage, setCurrentPage] = useState(1);
+
   const router = useRouter();
+
+  const sortBookingsNewestFirst = (list: Booking[]) => {
+    return [...list].sort((a, b) => {
+      const aTime = new Date(
+        a.createdAt || a.updatedAt || a.bookingDate,
+      ).getTime();
+      const bTime = new Date(
+        b.createdAt || b.updatedAt || b.bookingDate,
+      ).getTime();
+
+      // fallback if either date is invalid
+      if (Number.isNaN(aTime) && Number.isNaN(bTime)) {
+        return b.id.localeCompare(a.id);
+      }
+      if (Number.isNaN(aTime)) return 1;
+      if (Number.isNaN(bTime)) return -1;
+
+      return bTime - aTime;
+    });
+  };
 
   useEffect(() => {
     fetchBookings();
   }, []);
 
+  // ✅ Reset to first page when filters/search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm, dateRange]);
+
   const fetchBookings = async () => {
     try {
+      setIsFetching(true);
       const token = localStorage.getItem("authToken");
       if (!token) {
         router.push("/login");
         return;
       }
+
       const res = await fetch("/api/bookings", {
         headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store",
       });
+
       if (!res.ok) throw new Error("Failed to fetch bookings");
       const data = await res.json();
-      setBookings(data.bookings || []);
+
+      const normalized: Booking[] = (data.bookings || []).map((b: any) => ({
+        ...b,
+        services: Array.isArray(b.services)
+          ? b.services
+          : b.service
+            ? [b.service]
+            : [],
+      }));
+
+      setBookings(sortBookingsNewestFirst(normalized));
     } catch (err: any) {
       setError(err.message);
     } finally {
+      setIsFetching(false);
       setLoading(false);
+    }
+  };
+
+  const getApiErrorMessage = async (response: Response) => {
+    try {
+      const data = await response.json();
+      return (
+        data?.error ||
+        data?.message ||
+        data?.details ||
+        `Request failed (${response.status})`
+      );
+    } catch {
+      return `Request failed (${response.status})`;
     }
   };
 
@@ -103,11 +172,13 @@ export default function BookingsPage() {
     if (updatingBookingId === bookingId) return;
     try {
       setUpdatingBookingId(bookingId);
+      setIsFetching(true);
       const token = localStorage.getItem("authToken");
       if (!token) {
         router.push("/login");
         return;
       }
+
       const response = await fetch(`/api/bookings/${bookingId}`, {
         method: "PUT",
         headers: {
@@ -116,52 +187,123 @@ export default function BookingsPage() {
         },
         body: JSON.stringify({ status: newStatus }),
       });
-      const data = await response.json();
+
       if (!response.ok) {
+        const msg =
+          (await getApiErrorMessage(response)) || "Status update failed";
+
         toast({
-          title: "Error",
-          description: data.error || "Failed to update booking",
+          title: "Status update failed",
+          description: msg,
           variant: "destructive",
+          className: "bg-red-600 text-white border-red-700",
         });
-        throw new Error(data.error || "Failed to update booking");
+
+        return;
       }
-      toast({
-        title: "Success",
-        description: "Booking status updated successfully!",
+
+      // instant local update + keep newest order
+      setBookings((prev) => {
+        const next = sortBookingsNewestFirst(
+          prev.map((b) =>
+            b.id === bookingId
+              ? { ...b, status: newStatus as Booking["status"] }
+              : b,
+          ),
+        );
+
+        return next;
       });
+
+      toast({
+        title: "Booking status updated successfully",
+      });
+
       await fetchBookings();
     } catch (err: any) {
-      setError(err.message);
+      toast({
+        title: "Status update failed",
+        description: err?.message || "Something went wrong",
+        variant: "destructive",
+      });
     } finally {
       setUpdatingBookingId(null);
+      setIsFetching(false);
     }
   };
 
-  const sendWhatsAppMessage = (booking: Booking) => {
+  const sendWhatsAppMessage = (
+    booking: Booking,
+    statusOverride?: Booking["status"],
+  ) => {
     if (!booking.clientPhone) {
-      alert("No client phone number available.");
+      toast({
+        title: "No phone number",
+        description: "Client phone number is missing for this booking.",
+        variant: "destructive",
+      });
       return;
     }
+
     let phone = booking.clientPhone.replace(/[^\d]/g, "");
-    if (phone.startsWith("0")) {
-      phone = "234" + phone.slice(1);
-    }
-    const clientName = "Client";
+    if (phone.startsWith("0")) phone = "234" + phone.slice(1);
+
+    const statusToUse = statusOverride ?? booking.status;
+
+    const statusTextMap: Record<Booking["status"], string> = {
+      PENDING: "is pending",
+      CONFIRMED: "has been confirmed",
+      COMPLETED: "has been completed",
+      CANCELLED: "has been cancelled",
+    };
+
+    const services = getBookingServices(booking);
+    const serviceName = services.length > 0 ? services[0].name : "service";
+
     const message = encodeURIComponent(
-      `Hello ${clientName}, your booking for ${booking.service.name} at ${booking.salon?.name || "the salon"} on ${new Date(booking.bookingDate).toLocaleDateString()} at ${booking.startTime} has been received!`,
+      `Hello, your booking for ${serviceName} at ${booking.salon?.name || "the salon"} on ${new Date(booking.bookingDate).toLocaleDateString()} at ${booking.startTime} ${statusTextMap[statusToUse]}.`,
     );
-    const url = `https://wa.me/${phone}?text=${message}`;
-    window.open(url, "_blank");
+
+    window.open(
+      `https://wa.me/${phone}?text=${message}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  const getBookingServices = (booking: Booking): BookingService[] => {
+    if (Array.isArray(booking.services) && booking.services.length)
+      return booking.services;
+    if (booking.service) return [booking.service];
+    return [];
+  };
+
+  const getServiceLabel = (booking: Booking): string => {
+    const list = getBookingServices(booking);
+    if (!list.length) return "No service";
+    if (list.length === 1) return list[0].name;
+    return `${list[0].name} +${list.length - 1} more`;
+  };
+
+  const getTotalDuration = (booking: Booking): number => {
+    return getBookingServices(booking).reduce(
+      (sum, s) => sum + (s.duration || 0),
+      0,
+    );
   };
 
   const filteredBookings = bookings
     .filter((b) => statusFilter === "ALL" || b.status === statusFilter)
-    .filter(
-      (b) =>
+    .filter((b) => {
+      const services = getBookingServices(b);
+      return (
         searchTerm === "" ||
         b.clientPhone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        b.service.name.toLowerCase().includes(searchTerm.toLowerCase()),
-    );
+        services.some((s) =>
+          s.name.toLowerCase().includes(searchTerm.toLowerCase()),
+        )
+      );
+    });
 
   const getDateFilteredBookings = () => {
     const now = new Date();
@@ -188,6 +330,24 @@ export default function BookingsPage() {
   };
 
   const displayBookings = getDateFilteredBookings();
+
+  // Pagination calculations
+  const totalPages = Math.max(1, Math.ceil(displayBookings.length / PAGE_SIZE));
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+
+  const paginatedBookings = displayBookings.slice(startIndex, endIndex);
+
+  const showingFrom = displayBookings.length === 0 ? 0 : startIndex + 1;
+  const showingTo = Math.min(endIndex, displayBookings.length);
+
+  // Keep current page valid when data size changes
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -248,7 +408,19 @@ export default function BookingsPage() {
 
   return (
     <SalonAdminLayout>
-      <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
+      <Card className="relative border-0 bg-white dark:bg-slate-800 shadow-sm">
+        {/* ✅ Global backend preloader overlay */}
+        {(isFetching || updatingBookingId) && (
+          <div className="absolute inset-0 z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-[1px] flex items-center justify-center">
+            <div className="flex items-center gap-2 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="text-sm text-slate-700 dark:text-slate-300">
+                Please wait...
+              </span>
+            </div>
+          </div>
+        )}
+
         <CardHeader className="p-6">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
@@ -312,7 +484,7 @@ export default function BookingsPage() {
                 <p className="text-slate-500">No bookings found</p>
               </div>
             ) : (
-              displayBookings.map((booking) => (
+              paginatedBookings.map((booking) => (
                 <Card
                   key={booking.id}
                   className="overflow-hidden border-0 shadow-sm w-full"
@@ -341,7 +513,8 @@ export default function BookingsPage() {
                             Guest Client
                           </p>
                           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                            {booking.service.name}
+                            {getServiceLabel(booking)} (
+                            {getBookingServices(booking).length})
                           </p>
                           <p className="text-xs text-slate-400 mt-1">
                             {booking.clientPhone ? (
@@ -388,6 +561,9 @@ export default function BookingsPage() {
                           onValueChange={(val) =>
                             handleStatusChange(booking.id, val)
                           }
+                          disabled={
+                            isFetching || updatingBookingId === booking.id
+                          } // ✅ add
                         >
                           <SelectTrigger className="w-full xs:w-32 h-9">
                             <SelectValue />
@@ -403,6 +579,9 @@ export default function BookingsPage() {
                           size="sm"
                           variant="outline"
                           onClick={() => sendWhatsAppMessage(booking)}
+                          disabled={
+                            isFetching || updatingBookingId === booking.id
+                          } // ✅ add
                           className="rounded-full border-green-500 text-green-700 bg-white hover:bg-green-50 w-full xs:w-auto flex items-center justify-center gap-2"
                         >
                           <svg
@@ -421,6 +600,7 @@ export default function BookingsPage() {
               ))
             )}
           </div>
+
           {/* Desktop Table */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full">
@@ -457,7 +637,7 @@ export default function BookingsPage() {
                     </td>
                   </tr>
                 ) : (
-                  displayBookings.slice(0, 10).map((booking) => (
+                  paginatedBookings.map((booking) => (
                     <tr
                       key={booking.id}
                       className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
@@ -473,24 +653,16 @@ export default function BookingsPage() {
                             <p className="font-medium text-slate-800 dark:text-white">
                               Guest Client
                             </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">
-                              No email
-                            </p>
-                            <p className="text-xs text-slate-400 mt-1">
-                              {booking.clientPhone ? (
-                                `📞 ${booking.clientPhone}`
-                              ) : (
-                                <span className="text-rose-500">No phone</span>
-                              )}
-                            </p>
                           </div>
                         </div>
                       </td>
                       <td className="py-4 px-4">
                         <div>
-                          <p className="font-medium">{booking.service.name}</p>
+                          <p className="font-medium">
+                            {getServiceLabel(booking)}
+                          </p>
                           <p className="text-xs text-slate-500">
-                            {booking.service.duration} mins
+                            {getTotalDuration(booking)} mins
                           </p>
                         </div>
                       </td>
@@ -528,6 +700,9 @@ export default function BookingsPage() {
                             onValueChange={(val) =>
                               handleStatusChange(booking.id, val)
                             }
+                            disabled={
+                              isFetching || updatingBookingId === booking.id
+                            } // ✅ add
                           >
                             <SelectTrigger className="w-32">
                               <SelectValue />
@@ -549,6 +724,9 @@ export default function BookingsPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => sendWhatsAppMessage(booking)}
+                            disabled={
+                              isFetching || updatingBookingId === booking.id
+                            } // ✅ add
                             className="text-green-600 hover:text-green-700 hover:bg-green-50"
                           >
                             <svg
@@ -567,8 +745,42 @@ export default function BookingsPage() {
                 )}
               </tbody>
             </table>
-            {/* Pagination (optional) */}
           </div>
+
+          {/* ✅ Pagination Controls */}
+          {displayBookings.length > 0 && (
+            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+              <p className="text-sm text-slate-500">
+                Showing {showingFrom}-{showingTo} of {displayBookings.length}
+              </p>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage <= 1}
+                >
+                  Previous
+                </Button>
+
+                <span className="text-sm text-slate-600 dark:text-slate-300">
+                  Page {currentPage} of {totalPages}
+                </span>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                  }
+                  disabled={currentPage >= totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </SalonAdminLayout>

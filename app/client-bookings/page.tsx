@@ -46,6 +46,12 @@ interface ClientBooking {
   };
 }
 
+// Add API shape fallback (some responses may have `service` instead of `services`)
+type ApiBooking = Omit<ClientBooking, "services"> & {
+  services?: BookingService[];
+  service?: BookingService;
+};
+
 export default function ClientBookingsPage() {
   const router = useRouter();
   const [bookings, setBookings] = useState<ClientBooking[]>([]);
@@ -74,7 +80,28 @@ export default function ClientBookingsPage() {
         }
 
         const data = await res.json();
-        setBookings(data.bookings || []);
+
+        const rawBookings: ApiBooking[] = Array.isArray(data?.bookings)
+          ? data.bookings
+          : [];
+
+        const normalized: ClientBooking[] = rawBookings.map((b) => ({
+          ...b,
+          services: Array.isArray(b.services)
+            ? b.services
+            : b.service
+              ? [b.service]
+              : [],
+          salon: {
+            id: b.salon?.id ?? "",
+            name: b.salon?.name ?? "Unknown salon",
+            slug: b.salon?.slug ?? "",
+            address: b.salon?.address ?? "",
+            city: b.salon?.city ?? "",
+          },
+        }));
+
+        setBookings(normalized);
       } catch (err: any) {
         setError(err.message);
       } finally {

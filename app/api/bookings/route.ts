@@ -1,202 +1,179 @@
 import { NextRequest, NextResponse } from "next/server";
+import { BookingStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
-import { UserRole, BookingStatus } from "@prisma/client";
-import { apiError } from "@/lib/api-utils";
 
-// GET - Fetch bookings with filters
-export async function GET(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    const currentUser = await getCurrentUser();
+    const body = await req.json();
 
-    if (!currentUser) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { searchParams } = new URL(request.url);
-    const status = searchParams.get("status");
-    const salonId = searchParams.get("salonId");
-
-    const where: any = {};
-
-    // Filter based on user role
-    if (currentUser.role === UserRole.CLIENT) {
-      where.clientId = currentUser.userId;
-    } else if (currentUser.role === UserRole.SALON_ADMIN) {
-      // Get salon IDs for this admin
-      const salonAdmins = await prisma.salonAdmin.findMany({
-        where: { userId: currentUser.userId },
-        select: { salonId: true },
-      });
-      const salonIds = salonAdmins.map((sa) => sa.salonId);
-      where.salonId = { in: salonIds };
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (salonId) {
-      where.salonId = salonId;
-    }
-
-    const bookings = await prisma.booking.findMany({
-      where,
-      include: {
-        client: {
-          select: {
-            fullName: true,
-            email: true,
-            phone: true,
-          },
-        },
-        service: true,
-        salon: true,
-      },
-      orderBy: { bookingDate: "desc" },
-    });
-
-    return NextResponse.json({ bookings }, { status: 200 });
-  } catch (error) {
-    return apiError(
-      "Bookings GET Error",
-      error,
-      "Failed to fetch bookings",
-      500,
-    );
-  }
-}
-
-// POST - Create a new booking
-export async function POST(request: NextRequest) {
-  try {
-    // Allow anonymous bookings (no auth required)
-    // If user is logged in and is a client, use their ID; otherwise, booking is anonymous
-    let currentUser = null;
-    try {
-      currentUser = await getCurrentUser();
-    } catch {}
-
-    const body = await request.json();
     const {
       salonId,
-      serviceId,
+      serviceIds,
+      staffId,
       bookingDate,
       startTime,
       notes,
-      clientName,
-      clientEmail,
       clientPhone,
+      // Ignore any client-provided status fields
+      status: _ignoredStatus,
+      paymentStatus: _ignoredPaymentStatus,
     } = body;
 
-    if (!salonId || !serviceId || !bookingDate || !startTime) {
+    if (!salonId) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Salon ID is required" },
         { status: 400 },
       );
     }
 
-    // Fetch service details
-    const service = await prisma.service.findUnique({
-      where: { id: serviceId },
-    });
-
-    if (!service) {
-      return NextResponse.json({ error: "Service not found" }, { status: 404 });
-    }
-
-    // Calculate end time
-    const [startHour, startMinute] = startTime.split(":").map(Number);
-    const endDate = new Date(bookingDate);
-    endDate.setHours(
-      startHour + Math.floor((startMinute + service.duration) / 60),
-    );
-    endDate.setMinutes((startMinute + service.duration) % 60);
-
-    const endTime = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
-
-    // Check for conflicts
-    const existingBooking = await prisma.booking.findFirst({
-      where: {
-        salonId,
-        bookingDate: new Date(bookingDate),
-        status: { in: [BookingStatus.CONFIRMED, BookingStatus.PENDING] },
-        OR: [
-          {
-            AND: [
-              { startTime: { lte: startTime } },
-              { endTime: { gt: startTime } },
-            ],
-          },
-          {
-            AND: [
-              { startTime: { lt: endTime } },
-              { endTime: { gte: endTime } },
-            ],
-          },
-        ],
-      },
-    });
-
-    if (existingBooking) {
+    if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) {
       return NextResponse.json(
-        { error: "Time slot already booked" },
-        { status: 409 },
+        { error: "At least one service must be selected" },
+        { status: 400 },
       );
     }
 
-    // If user is logged in and is a client, use their ID; otherwise, create a guest booking (clientId: undefined)
-    const guestInfo =
-      clientName || clientEmail || clientPhone
-        ? `Guest: ${clientName || ""} | Email: ${clientEmail || ""} | Phone: ${clientPhone || ""}`
-        : null;
-
-
-    const bookingData: any = {
-      salonId,
-      serviceId,
-      bookingDate: new Date(bookingDate),
-      startTime,
-      endTime,
-      totalPrice: service.price,
-      notes: notes ? `${notes}\n${guestInfo}` : guestInfo,
-    };
-
-    // Save clientPhone for guest bookings
-    if (currentUser && currentUser.role === UserRole.CLIENT) {
-      bookingData.clientId = currentUser.userId;
-    } else if (clientPhone) {
-      bookingData.clientPhone = clientPhone;
+    if (!bookingDate) {
+      return NextResponse.json(
+        { error: "Booking date is required" },
+        { status: 400 },
+      );
     }
 
-    const booking = await prisma.booking.create({
-      data: bookingData,
-      include: {
-        client: true,
-        service: true,
-        salon: true,
+    if (!startTime) {
+      return NextResponse.json(
+        { error: "Start time is required" },
+        { status: 400 },
+      );
+    }
+
+    if (!clientPhone || clientPhone.trim() === "") {
+      return NextResponse.json(
+        { error: "Phone number is required" },
+        { status: 400 },
+      );
+    }
+
+    const salonExists = await prisma.salon.findUnique({
+      where: { id: salonId },
+    });
+
+    if (!salonExists) {
+      return NextResponse.json({ error: "Salon not found" }, { status: 404 });
+    }
+
+    const services = await prisma.service.findMany({
+      where: {
+        id: { in: serviceIds },
+        salonId,
       },
     });
 
-    // Format totalPrice as Naira in the response and always include clientPhone
-    const bookingWithNaira = {
-      ...booking,
-      clientPhone: booking.clientPhone || clientPhone || booking.client?.phone || null,
-      totalPriceNaira: `₦${Number(booking.totalPrice).toLocaleString()}`,
-    };
-    return NextResponse.json(
-      {
-        message: "Booking created successfully",
-        booking: bookingWithNaira,
+    if (services.length !== serviceIds.length) {
+      return NextResponse.json(
+        { error: "One or more services not found" },
+        { status: 404 },
+      );
+    }
+
+    const totalPrice = services.reduce((sum, svc) => sum + svc.price, 0);
+    const totalDuration = services.reduce((sum, svc) => sum + svc.duration, 0);
+
+    const booking = await prisma.booking.create({
+      data: {
+        salon: { connect: { id: salonId } },
+        service: { connect: { id: serviceIds[0] } },
+        bookingDate: new Date(bookingDate),
+        startTime,
+        endTime: calculateEndTime(startTime, totalDuration),
+        clientPhone: clientPhone.trim(),
+        notes: notes || null,
+
+        // Force initial states
+        status: BookingStatus.PENDING,
+        paymentStatus: PaymentStatus.PENDING,
+
+        totalPrice,
+        ...(staffId && { staffId }),
       },
+      include: {
+        service: {
+          select: { id: true, name: true, price: true, duration: true },
+        },
+        salon: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            address: true,
+            city: true,
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(
+      { booking, message: "Booking created successfully" },
       { status: 201 },
     );
-  } catch (error) {
-    return apiError(
-      "Bookings POST Error",
-      error,
-      error instanceof Error ? error.message : "Failed to create booking",
-      500,
+  } catch (error: any) {
+    console.error("Booking error:", error);
+
+    return NextResponse.json(
+      {
+        error: error.message || "Failed to create booking",
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
+      { status: 500 },
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const bookings = await prisma.booking.findMany({
+      include: {
+        service: true,
+        salon: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            address: true,
+            city: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ bookings }, { status: 200 });
+  } catch (error: any) {
+    console.error("Fetch bookings error:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to fetch bookings",
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
+      { status: 500 },
+    );
+  }
+}
+
+function calculateEndTime(startTime: string, duration: number): string {
+  const [hours, minutes] = startTime.split(":").map(Number);
+  const totalMinutes = hours * 60 + minutes + duration;
+  const endHours = Math.floor(totalMinutes / 60) % 24;
+  const endMinutes = totalMinutes % 60;
+
+  return `${String(endHours).padStart(2, "0")}:${String(endMinutes).padStart(2, "0")}`;
 }

@@ -19,6 +19,7 @@ import {
   MessageSquare,
   CheckCircle,
   XCircle,
+  Check,
 } from "lucide-react";
 
 export default function SalonBookingPage() {
@@ -31,14 +32,13 @@ export default function SalonBookingPage() {
   const [error, setError] = useState<string | null>(null);
 
   // Form state
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [selectedStaff, setSelectedStaff] = useState<string | null>(null);
   const [bookingDate, setBookingDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [notes, setNotes] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  // Remove message state, use toast instead
 
   useEffect(() => {
     async function fetchData() {
@@ -68,20 +68,33 @@ export default function SalonBookingPage() {
     fetchData();
   }, [slug]);
 
+  const toggleService = (serviceId: string) => {
+    setSelectedServices((prev) =>
+      prev.includes(serviceId)
+        ? prev.filter((id) => id !== serviceId)
+        : [...prev, serviceId],
+    );
+  };
+
   const handleBooking = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedService || !bookingDate || !startTime || !clientPhone) {
+    if (
+      selectedServices.length === 0 ||
+      !bookingDate ||
+      !startTime ||
+      !clientPhone
+    ) {
       toast({
         title: "Missing Fields",
         description:
-          "Please fill all required fields, including your phone number.",
+          "Please select at least one service, date, time, and enter your phone number.",
         variant: "destructive",
       });
       return;
     }
     // Basic phone validation
-    if (!/^\+?\d{10,15}$/.test(clientPhone)) {
+    if (!/^\+?\d{10,15}$/.test(clientPhone.replace(/\s/g, ""))) {
       toast({
         title: "Invalid Phone Number",
         description:
@@ -93,44 +106,53 @@ export default function SalonBookingPage() {
 
     setSubmitting(true);
     try {
+      const bookingPayload = {
+        salonId: salon?.id,
+        serviceIds: selectedServices,
+        staffId: selectedStaff || undefined,
+        bookingDate,
+        startTime,
+        notes: notes || undefined,
+        clientPhone: clientPhone.trim(),
+      };
+
+      // Log payload for debugging
+      console.log("Booking Payload:", bookingPayload);
+
       const res = await fetch("/api/bookings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          salonId: salon?.id,
-          serviceId: selectedService,
-          staffId: selectedStaff || null,
-          bookingDate,
-          startTime,
-          notes,
-          clientPhone,
-        }),
+        body: JSON.stringify(bookingPayload),
       });
 
       const data = await res.json();
+
       if (res.ok) {
         toast({
           title: "Booking Confirmed!",
           description: `Your booking was successful. Ref: ${data.booking.id}`,
           variant: "default",
         });
-        setSelectedService(null);
+        setSelectedServices([]);
         setSelectedStaff(null);
         setBookingDate("");
         setStartTime("");
         setNotes("");
         setClientPhone("");
       } else {
+        console.error("Booking error:", data);
         toast({
           title: "Booking Failed",
-          description: data.error || "Booking failed.",
+          description:
+            data.error || data.message || "Booking failed. Please try again.",
           variant: "destructive",
         });
       }
     } catch (err: any) {
+      console.error("Booking exception:", err);
       toast({
         title: "Booking Error",
-        description: err.message,
+        description: err.message || "An error occurred while booking.",
         variant: "destructive",
       });
     } finally {
@@ -146,6 +168,15 @@ export default function SalonBookingPage() {
     const hour12 = hour % 12 || 12;
     return `${hour12}:${minutes} ${ampm}`;
   };
+
+  const selectedServicesData = services.filter((s) =>
+    selectedServices.includes(s.id),
+  );
+  const totalPrice = selectedServicesData.reduce((sum, s) => sum + s.price, 0);
+  const totalDuration = selectedServicesData.reduce(
+    (sum, s) => sum + s.duration,
+    0,
+  );
 
   if (loading) {
     return (
@@ -198,8 +229,6 @@ export default function SalonBookingPage() {
     );
   }
 
-  const selectedServiceData = services.find((s) => s.id === selectedService);
-
   return (
     <div className="min-h-screen bg-linear-to-br from-purple-50 to-pink-50 pb-8">
       {/* Header Card */}
@@ -246,38 +275,53 @@ export default function SalonBookingPage() {
 
           <div className="p-4 sm:p-6">
             <form onSubmit={handleBooking} className="space-y-8">
-              {/* Services Section */}
+              {/* Services Section - Multiple Selection */}
               <div>
                 <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
                   <Scissors className="w-5 h-5 text-purple-600" />
-                  Select Service *
+                  Select Services * ({selectedServices.length} selected)
                 </h3>
                 <div className="space-y-3">
                   {services.map((svc) => (
                     <button
                       key={svc.id}
                       type="button"
-                      onClick={() => setSelectedService(svc.id)}
+                      onClick={() => toggleService(svc.id)}
                       className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                        selectedService === svc.id
+                        selectedServices.includes(svc.id)
                           ? "border-purple-500 bg-purple-50 shadow-md"
                           : "border-gray-200 bg-white hover:border-purple-200 hover:shadow-sm"
                       }`}
                     >
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-semibold text-gray-800">
-                          {svc.name}
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+                                selectedServices.includes(svc.id)
+                                  ? "border-purple-500 bg-purple-500"
+                                  : "border-gray-300 bg-white"
+                              }`}
+                            >
+                              {selectedServices.includes(svc.id) && (
+                                <Check className="w-3 h-3 text-white" />
+                              )}
+                            </div>
+                            <span className="font-semibold text-gray-800">
+                              {svc.name}
+                            </span>
+                          </div>
+                          <p className="text-gray-600 text-sm mb-2 ml-7">
+                            {svc.description}
+                          </p>
+                          <div className="flex items-center text-sm text-gray-500 ml-7">
+                            <Clock className="w-4 h-4 mr-1" />
+                            <span>{svc.duration} minutes</span>
+                          </div>
+                        </div>
+                        <span className="font-bold text-purple-600 flex-shrink-0 ml-4">
+                          ₦{svc.price.toLocaleString()}
                         </span>
-                        <span className="font-bold text-purple-600">
-                          <span>₦{svc.price.toLocaleString()}</span>
-                        </span>
-                      </div>
-                      <p className="text-gray-600 text-sm mb-2">
-                        {svc.description}
-                      </p>
-                      <div className="flex items-center text-sm text-gray-500">
-                        <Clock className="w-4 h-4 mr-1" />
-                        <span>{svc.duration} minutes</span>
                       </div>
                     </button>
                   ))}
@@ -411,27 +455,35 @@ export default function SalonBookingPage() {
               </div>
 
               {/* Summary Card */}
-              {selectedServiceData && (
+              {selectedServicesData.length > 0 && (
                 <div className="bg-linear-to-r from-purple-50 to-pink-50 p-4 rounded-xl border-2 border-purple-200">
-                  <h4 className="font-semibold text-gray-800 mb-2">
-                    Booking Summary
+                  <h4 className="font-semibold text-gray-800 mb-3">
+                    Booking Summary ({selectedServicesData.length} service
+                    {selectedServicesData.length > 1 ? "s" : ""})
                   </h4>
-                  <div className="flex justify-between items-center text-sm mb-2">
-                    <span className="text-gray-600">Service:</span>
+                  <div className="space-y-2 mb-3">
+                    {selectedServicesData.map((svc) => (
+                      <div
+                        key={svc.id}
+                        className="flex justify-between items-center text-sm"
+                      >
+                        <span className="text-gray-600">{svc.name}</span>
+                        <span className="font-medium text-gray-800">
+                          ₦{svc.price.toLocaleString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex justify-between items-center text-sm mb-2 pb-2 border-b border-purple-300">
+                    <span className="text-gray-600">Total Duration:</span>
                     <span className="font-medium text-gray-800">
-                      {selectedServiceData.name}
+                      {totalDuration} mins
                     </span>
                   </div>
-                  <div className="flex justify-between items-center text-sm mb-2">
-                    <span className="text-gray-600">Duration:</span>
-                    <span className="font-medium text-gray-800">
-                      {selectedServiceData.duration} mins
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-lg font-bold mt-3 pt-3 border-t border-purple-200">
-                    <span className="text-gray-800">Total:</span>
+                  <div className="flex justify-between items-center text-lg font-bold">
+                    <span className="text-gray-800">Total Price:</span>
                     <span className="text-purple-600">
-                      {selectedServiceData.price}
+                      ₦{totalPrice.toLocaleString()}
                     </span>
                   </div>
                 </div>
@@ -440,8 +492,8 @@ export default function SalonBookingPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                disabled={false}
-                className="w-full bg-linear-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition shadow-lg hover:shadow-xl"
+                disabled={submitting}
+                className="w-full bg-linear-to-r from-purple-600 to-pink-600 text-white py-4 px-6 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-pink-700 transition shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {submitting ? (
                   <span className="flex items-center justify-center gap-2">
@@ -457,7 +509,7 @@ export default function SalonBookingPage() {
             {/* Footer Links */}
             <div className="mt-6 text-center space-y-2">
               <Link
-                href="/bookings"
+                href="/client-bookings"
                 className="text-purple-600 hover:text-purple-700 font-medium inline-flex items-center gap-1"
               >
                 <Calendar className="w-4 h-4" />

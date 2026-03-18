@@ -26,6 +26,111 @@ import {
 } from "lucide-react";
 import { Label } from "@radix-ui/react-label";
 
+const SERVICE_CATEGORIES = [
+  "Hair",
+  "Nails",
+  "Spa",
+  "Skincare",
+  "Makeup",
+  "Waxing",
+  "Massage",
+  "Threading",
+  "Braiding",
+  "Coloring",
+  "Other",
+];
+
+const SERVICE_NAMES: Record<string, string[]> = {
+  Hair: [
+    "Haircut",
+    "Hair Wash",
+    "Hair Coloring",
+    "Hair Treatment",
+    "Blow Dry",
+    "Hair Braiding",
+    "Hair Extensions",
+    "Relaxer",
+    "Perming",
+    "Other",
+  ],
+  Nails: [
+    "Manicure",
+    "Pedicure",
+    "Gel Nails",
+    "Acrylic Nails",
+    "Nail Art",
+    "Nail Polish",
+    "Other",
+  ],
+  Spa: [
+    "Full Body Massage",
+    "Swedish Massage",
+    "Deep Tissue Massage",
+    "Hot Stone Massage",
+    "Facial Massage",
+    "Body Wrap",
+    "Sauna",
+    "Other",
+  ],
+  Skincare: [
+    "Facial",
+    "Chemical Peel",
+    "Microdermabrasion",
+    "Dark Spot Treatment",
+    "Acne Treatment",
+    "Brightening Treatment",
+    "Anti-Aging Treatment",
+    "Other",
+  ],
+  Makeup: [
+    "Makeup Application",
+    "Bridal Makeup",
+    "Party Makeup",
+    "Eyebrow Design",
+    "Eyelash Extensions",
+    "Eyebrow Threading",
+    "Lip Care",
+    "Other",
+  ],
+  Waxing: [
+    "Full Body Wax",
+    "Leg Wax",
+    "Underarm Wax",
+    "Bikini Wax",
+    "Brazilian Wax",
+    "Face Wax",
+    "Other",
+  ],
+  Massage: [
+    "Full Body Massage",
+    "Head Massage",
+    "Foot Massage",
+    "Back Massage",
+    "Neck & Shoulder Massage",
+    "Prenatal Massage",
+    "Sports Massage",
+    "Other",
+  ],
+  Threading: [
+    "Eyebrow Threading",
+    "Face Threading",
+    "Upper Lip Threading",
+    "Full Face Threading",
+    "Other",
+  ],
+  Braiding: ["Box Braids", "Cornrows", "Locs", "Twists", "Weaving", "Other"],
+  Coloring: [
+    "Full Head Color",
+    "Highlights",
+    "Lowlights",
+    "Root Touch-up",
+    "Color Correction",
+    "Ombre",
+    "Other",
+  ],
+  Other: ["Custom Service"],
+};
+
 interface Service {
   id: string;
   name: string;
@@ -239,6 +344,10 @@ export default function ServicesPage() {
     }
   };
 
+  const availableServiceNames = serviceForm.category
+    ? SERVICE_NAMES[serviceForm.category] || []
+    : [];
+
   return (
     <SalonAdminLayout>
       <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
@@ -316,20 +425,57 @@ export default function ServicesPage() {
                     <div className="space-y-4">
                       <div>
                         <Label className="text-sm font-medium">
-                          Service Name *
+                          Category *
                         </Label>
-                        <Input
-                          value={serviceForm.name}
-                          onChange={(e) => {
+                        <select
+                          value={serviceForm.category}
+                          onChange={(e) =>
                             setServiceForm({
                               ...serviceForm,
-                              name: e.target.value,
-                            });
-                            setServiceError(null);
-                          }}
-                          placeholder="e.g., Haircut, Manicure"
-                          className="mt-1"
-                        />
+                              category: e.target.value,
+                              name: "",
+                            })
+                          }
+                          className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-slate-500 dark:bg-slate-900 dark:text-white bg-white"
+                        >
+                          <option value="">Select a category</option>
+                          {SERVICE_CATEGORIES.map((cat) => (
+                            <option key={cat} value={cat}>
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <Label className="text-sm font-medium">
+                          Service Name *
+                        </Label>
+                        {serviceForm.category ? (
+                          <select
+                            value={serviceForm.name}
+                            onChange={(e) =>
+                              setServiceForm({
+                                ...serviceForm,
+                                name: e.target.value,
+                              })
+                            }
+                            className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-slate-500 dark:bg-slate-900 dark:text-white bg-white"
+                          >
+                            <option value="">Select a service</option>
+                            {availableServiceNames.map((sName) => (
+                              <option key={sName} value={sName}>
+                                {sName}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          <Input
+                            disabled
+                            placeholder="Please select a category first"
+                            className="mt-1"
+                          />
+                        )}
                       </div>
 
                       <div>
@@ -337,7 +483,7 @@ export default function ServicesPage() {
                           Description
                         </Label>
                         <textarea
-                          className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-slate-500 dark:bg-slate-900"
+                          className="w-full mt-1 px-3 py-2 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-slate-500 dark:bg-slate-900 dark:text-white"
                           value={serviceForm.description}
                           onChange={(e) =>
                             setServiceForm({
@@ -357,14 +503,19 @@ export default function ServicesPage() {
                           </Label>
                           <Input
                             type="number"
-                            value={serviceForm.price}
+                            value={
+                              serviceForm.price === 0 ? "" : serviceForm.price
+                            }
                             onChange={(e) =>
                               setServiceForm({
                                 ...serviceForm,
-                                price: Number(e.target.value),
+                                price:
+                                  e.target.value === ""
+                                    ? 0
+                                    : Number(e.target.value),
                               })
                             }
-                            placeholder="0"
+                            placeholder="Enter price"
                             min="0"
                             className="mt-1"
                           />
@@ -375,33 +526,25 @@ export default function ServicesPage() {
                           </Label>
                           <Input
                             type="number"
-                            value={serviceForm.duration}
+                            value={
+                              serviceForm.duration === 0
+                                ? ""
+                                : serviceForm.duration
+                            }
                             onChange={(e) =>
                               setServiceForm({
                                 ...serviceForm,
-                                duration: Number(e.target.value),
+                                duration:
+                                  e.target.value === ""
+                                    ? 0
+                                    : Number(e.target.value),
                               })
                             }
-                            placeholder="30"
+                            placeholder="Enter duration"
                             min="0"
                             className="mt-1"
                           />
                         </div>
-                      </div>
-
-                      <div>
-                        <Label className="text-sm font-medium">Category</Label>
-                        <Input
-                          value={serviceForm.category}
-                          onChange={(e) =>
-                            setServiceForm({
-                              ...serviceForm,
-                              category: e.target.value,
-                            })
-                          }
-                          placeholder="e.g., Hair, Nails, Spa"
-                          className="mt-1"
-                        />
                       </div>
 
                       <Button
@@ -453,11 +596,11 @@ export default function ServicesPage() {
                         <CardContent className="p-3 sm:p-4">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2">
+                              <div className="flex items-center gap-2 mb-2 flex-wrap">
                                 <h4 className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">
                                   {service.name}
                                 </h4>
-                                <Badge className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-0">
+                                <Badge className="bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-0 text-xs">
                                   {service.duration} mins
                                 </Badge>
                               </div>
@@ -466,26 +609,26 @@ export default function ServicesPage() {
                                   {service.description}
                                 </p>
                               )}
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <span className="text-xl font-bold text-slate-800 dark:text-white">
                                   ₦{service.price.toLocaleString()}
                                 </span>
                                 {service.category && (
                                   <Badge
                                     variant="outline"
-                                    className="border-slate-200 dark:border-slate-700"
+                                    className="border-slate-200 dark:border-slate-700 text-xs"
                                   >
                                     {service.category}
                                   </Badge>
                                 )}
                               </div>
                             </div>
-                            <div className="flex gap-2 mt-2 sm:mt-0 ml-0 sm:ml-4">
+                            <div className="flex gap-2 mt-2 sm:mt-0 ml-0 sm:ml-4 w-full sm:w-auto">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => startEditService(service)}
-                                className="border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                className="flex-1 sm:flex-none border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700"
                               >
                                 <Edit className="w-4 h-4" />
                               </Button>
@@ -493,7 +636,7 @@ export default function ServicesPage() {
                                 size="sm"
                                 variant="outline"
                                 onClick={() => handleDeleteService(service.id)}
-                                className="border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400"
+                                className="flex-1 sm:flex-none border-rose-200 dark:border-rose-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 text-rose-600 dark:text-rose-400"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </Button>

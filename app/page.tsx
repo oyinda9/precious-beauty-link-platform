@@ -47,7 +47,7 @@ export default function Home() {
     { name: "How It Works", href: "#how-it-works" },
     { name: "Pricing", href: "#pricing" },
     { name: "Testimonials", href: "#testimonials" },
-    { name: "Find Salons", href: "/salons/nearby" },
+    // { name: "Find Salons", href: "/salons/nearby" },
   ];
 
   const features = [
@@ -245,7 +245,7 @@ export default function Home() {
 
             {/* Auth Buttons */}
             <div className="flex items-center gap-3">
-              <Link href="/salons/nearby" className="hidden sm:block">
+              {/* <Link href="/salons/nearby" className="hidden sm:block">
                 <Button
                   variant="outline"
                   className="border-purple-200 text-purple-600 hover:bg-purple-50"
@@ -253,7 +253,7 @@ export default function Home() {
                   <MapPin className="mr-2 h-4 w-4" />
                   Find Salons
                 </Button>
-              </Link>
+              </Link> */}
               <Link href="/register-salon-owner">
                 <Button className="bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:from-purple-700 hover:to-pink-700 shadow-lg hover:shadow-xl transition-all">
                   Get Started
