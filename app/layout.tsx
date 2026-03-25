@@ -1,30 +1,32 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientWrapper from "../components/client-wrapper";
 
-const geist = Geist({ subsets: ["latin"] });
-const geistMono = Geist_Mono({ subsets: ["latin"] });
+const geist = Geist({
+  subsets: ["latin"],
+  variable: "--font-geist-sans",
+});
+
+const geistMono = Geist_Mono({
+  subsets: ["latin"],
+  variable: "--font-geist-mono",
+});
 
 export const metadata: Metadata = {
-  title: "SalonBook - Your Ultimate Beauty Salon Booking Platform",
-  description: "Precious Beauty Link Platform",
-  generator: "precious-beauty-link-platform",
-  icons: {
-    icon: "/favicon.png",
-    apple: "/apple-touch-icon.png",
-  },
+  title: "Precious Beauty",
+  description: "Beauty link platform",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geist.className} ${geistMono.className} font-sans antialiased`}
+        suppressHydrationWarning
       >
-        <ClientWrapper>{children}</ClientWrapper>
+        {children}
       </body>
     </html>
   );

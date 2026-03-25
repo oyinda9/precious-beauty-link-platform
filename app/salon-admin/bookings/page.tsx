@@ -747,36 +747,38 @@ export default function BookingsPage() {
             </table>
           </div>
 
-          {/* ✅ Pagination Controls */}
-          {displayBookings.length > 0 && (
-            <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-              <p className="text-sm text-slate-500">
-                Showing {showingFrom}-{showingTo} of {displayBookings.length}
+          {/* ✅ Simple Mobile-Friendly Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-700 mt-6">
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                {displayBookings.length === 0
+                  ? "No results"
+                  : `${showingFrom}–${showingTo} of ${displayBookings.length}`}
               </p>
 
               <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
                 >
-                  Previous
+                  ← Prev
                 </Button>
 
-                <span className="text-sm text-slate-600 dark:text-slate-300">
-                  Page {currentPage} of {totalPages}
+                <span className="px-3 py-1 text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded">
+                  {currentPage} / {totalPages}
                 </span>
 
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() =>
-                    setCurrentPage((p) => Math.min(totalPages, p + 1))
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
                   }
-                  disabled={currentPage >= totalPages}
+                  disabled={currentPage === totalPages}
                 >
-                  Next
+                  Next →
                 </Button>
               </div>
             </div>
