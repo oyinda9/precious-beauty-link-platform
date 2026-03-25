@@ -15,6 +15,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Precious Beauty",
   description: "Beauty link platform",
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icon-light-32x32.png",
+    other: [
+      {
+        rel: "icon",
+        url: "/icon.svg",
+        type: "image/svg+xml",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({
