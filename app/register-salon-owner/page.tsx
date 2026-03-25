@@ -997,6 +997,25 @@ export default function RegisterSalonOwnerPage() {
         </Card>
       </div>
 
+      {/* Full-page loader */}
+      {loading && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-sm w-full mx-4">
+            <div className="flex flex-col items-center text-center">
+              <div className="mb-6">
+                <Loader2 className="w-12 h-12 text-purple-600 animate-spin" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                Processing Payment
+              </h3>
+              <p className="text-sm text-gray-600">
+                Please wait while we redirect you to Monnify secure checkout...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         @keyframes blob {
           0%,
