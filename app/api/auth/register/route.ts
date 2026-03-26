@@ -5,10 +5,11 @@ import { UserRole } from "@prisma/client";
 import { apiError } from "@/lib/api-utils";
 
 const PLAN_MAP = {
-  free: "TRIAL",
-  basic: "STARTER",
-  standard: "PROFESSIONAL",
-  premium: "ENTERPRISE",
+  FREE: "FREE",
+  STARTER: "STARTER",
+  STANDARD: "STANDARD",
+  GROWTH: "GROWTH",
+  PREMIUM: "PREMIUM",
 } as const;
 
 type FrontendPlan = keyof typeof PLAN_MAP;
@@ -27,7 +28,7 @@ export async function POST(request: NextRequest) {
       salonAddress,
       salonCity,
       salonPhone,
-      plan = "free",
+      plan = "FREE",
     } = body;
 
     // Validate input
@@ -86,10 +87,12 @@ export async function POST(request: NextRequest) {
     const userRole = validRoles.includes(role) ? role : UserRole.CLIENT;
 
     // Validate plan only for salon admin
-    const normalizedPlan = String(plan).toLowerCase() as FrontendPlan;
+    const normalizedPlan = String(plan).toUpperCase() as FrontendPlan;
     if (userRole === UserRole.SALON_ADMIN && !(normalizedPlan in PLAN_MAP)) {
       return NextResponse.json(
-        { error: "Invalid plan selected" },
+        {
+          error: `Invalid plan selected. Valid plans are: ${Object.keys(PLAN_MAP).join(", ")}`,
+        },
         { status: 400 },
       );
     }
@@ -143,19 +146,26 @@ export async function POST(request: NextRequest) {
       // Map frontend plan key to SubscriptionPlan enum
       const planEnum = PLAN_MAP[normalizedPlan];
 
+      if (!planEnum) {
+        return NextResponse.json(
+          { error: `Invalid plan: ${normalizedPlan}. Valid plans are: ${Object.keys(PLAN_MAP).join(", ")}` },
+          { status: 400 },
+        );
+      }
+
       // Create subscription record for the salon
       await prisma.subscription.create({
         data: {
           salonId: salon.id,
           plan: planEnum,
-          status: planEnum === "TRIAL" ? "TRIAL" : "ACTIVE",
+          status: planEnum === "FREE" ? "TRIAL" : "ACTIVE",
         },
       });
     }
 
     // Generate JWT token
     const token = generateToken({
-      userId: user.id,
+      id: user.id,
       email: user.email,
       fullName: user.fullName,
       role: user.role,

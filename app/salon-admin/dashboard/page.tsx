@@ -86,7 +86,7 @@ export default function DashboardPage() {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
       const res = await fetch("/api/bookings", {
@@ -129,7 +129,7 @@ export default function DashboardPage() {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
       const res = await fetch("/api/salons/me", {

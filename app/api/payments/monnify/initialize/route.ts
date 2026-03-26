@@ -3,11 +3,15 @@ import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken } from "@/lib/auth";
 
-const PLAN_AMOUNT: Record<"free" | "basic" | "standard" | "premium", number> = {
-  free: 0,
-  basic: 10000,
-  standard: 15000,
-  premium: 30000,
+const PLAN_AMOUNT: Record<
+  "FREE" | "STARTER" | "STANDARD" | "GROWTH" | "PREMIUM",
+  number
+> = {
+  FREE: 0,
+  STARTER: 5000,
+  STANDARD: 10000,
+  GROWTH: 20000,
+  PREMIUM: 30000,
 };
 
 function getToken(request: NextRequest) {
@@ -23,7 +27,9 @@ function getToken(request: NextRequest) {
 async function getMonnifyAccessToken() {
   const apiKey = String(process.env.MONNIFY_API_KEY || "").trim();
   const secretKey = String(process.env.MONNIFY_SECRET_KEY || "").trim();
-  const baseUrl = String(process.env.MONNIFY_BASE_URL || "https://sandbox.monnify.com").trim();
+  const baseUrl = String(
+    process.env.MONNIFY_BASE_URL || "https://sandbox.monnify.com",
+  ).trim();
 
   const basic = Buffer.from(`${apiKey}:${secretKey}`).toString("base64");
 
@@ -34,22 +40,30 @@ async function getMonnifyAccessToken() {
 
   const data = await res.json().catch(() => null);
   const token = data?.responseBody?.accessToken;
-  if (!res.ok || !token) throw new Error(data?.responseMessage || "Monnify auth failed");
+  if (!res.ok || !token)
+    throw new Error(data?.responseMessage || "Monnify auth failed");
   return token as string;
 }
 
 export async function POST(request: NextRequest) {
   try {
     const token = getToken(request);
-    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!token)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const jwt = verifyToken(token) as { userId?: string; id?: string; sub?: string } | null;
-    const userId = jwt?.userId || jwt?.id || jwt?.sub;
-    if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const jwt = verifyToken(token) as {
+      id?: string;
+      sub?: string;
+    } | null;
+    const userId = jwt?.id || jwt?.sub;
+    if (!userId)
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await request.json();
-    const planKey = String(body?.planKey || "").toLowerCase() as keyof typeof PLAN_AMOUNT;
-    if (!(planKey in PLAN_AMOUNT) || planKey === "free") {
+    const planKey = String(
+      body?.planKey || "",
+    ).toUpperCase() as keyof typeof PLAN_AMOUNT;
+    if (!(planKey in PLAN_AMOUNT) || planKey === "FREE") {
       return NextResponse.json({ error: "Invalid paid plan" }, { status: 400 });
     }
 
@@ -62,9 +76,14 @@ export async function POST(request: NextRequest) {
     }
 
     const contractCode = String(process.env.MONNIFY_CONTRACT_CODE || "").trim();
-    const baseUrl = String(process.env.MONNIFY_BASE_URL || "https://sandbox.monnify.com").trim();
+    const baseUrl = String(
+      process.env.MONNIFY_BASE_URL || "https://sandbox.monnify.com",
+    ).trim();
     if (!contractCode) {
-      return NextResponse.json({ error: "Missing MONNIFY_CONTRACT_CODE" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Missing MONNIFY_CONTRACT_CODE" },
+        { status: 500 },
+      );
     }
 
     const accessToken = await getMonnifyAccessToken();
@@ -75,21 +94,26 @@ export async function POST(request: NextRequest) {
       customerName: admin.user.fullName || admin.salon.name,
       customerEmail: admin.user.email,
       paymentReference: reference,
-      paymentDescription: String(body?.productDescription || `${planKey} subscription`),
+      paymentDescription: String(
+        body?.productDescription || `${planKey} subscription`,
+      ),
       currencyCode: "NGN",
       contractCode,
       redirectUrl: `${process.env.NEXT_PUBLIC_APP_URL}/subscription/callback?provider=monnify&reference=${encodeURIComponent(reference)}`,
       paymentMethods: ["CARD", "ACCOUNT_TRANSFER"],
     };
 
-    const initRes = await fetch(`${baseUrl}/api/v1/merchant/transactions/init-transaction`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+    const initRes = await fetch(
+      `${baseUrl}/api/v1/merchant/transactions/init-transaction`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify(initPayload),
       },
-      body: JSON.stringify(initPayload),
-    });
+    );
 
     const initData = await initRes.json().catch(() => null);
     const checkoutUrl = initData?.responseBody?.checkoutUrl;
@@ -97,7 +121,7 @@ export async function POST(request: NextRequest) {
     if (!initRes.ok || !checkoutUrl) {
       return NextResponse.json(
         { error: initData?.responseMessage || "Monnify init failed" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -107,6 +131,9 @@ export async function POST(request: NextRequest) {
       provider: "monnify",
     });
   } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Initialization failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: e?.message || "Initialization failed" },
+      { status: 500 },
+    );
   }
 }

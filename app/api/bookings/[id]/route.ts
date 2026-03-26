@@ -44,7 +44,7 @@ export async function GET(
     // Check authorization
     if (
       currentUser.role === UserRole.CLIENT &&
-      booking.clientId !== currentUser.userId
+      booking.clientId !== currentUser.id
     ) {
       return NextResponse.json(
         { error: "Forbidden - You can only view your own bookings" },
@@ -60,7 +60,7 @@ export async function GET(
       const salonAdmin = await prisma.salonAdmin.findFirst({
         where: {
           salonId: booking.salonId,
-          userId: currentUser.userId,
+          userId: currentUser.id,
         },
       });
 
@@ -118,7 +118,7 @@ export async function PUT(
     // Check authorization based on role
     if (currentUser.role === UserRole.CLIENT) {
       // Clients can only cancel their own bookings
-      if (booking.clientId !== currentUser.userId) {
+      if (booking.clientId !== currentUser.id) {
         return NextResponse.json(
           { error: "Forbidden - You can only update your own bookings" },
           { status: 403 },
@@ -155,7 +155,7 @@ export async function PUT(
       const salonAdmin = await prisma.salonAdmin.findFirst({
         where: {
           salonId: booking.salonId,
-          userId: currentUser.userId,
+          userId: currentUser.id,
         },
       });
 
@@ -205,7 +205,7 @@ export async function PUT(
       const salonStaff = await prisma.salonStaff.findFirst({
         where: {
           salonId: booking.salonId,
-          userId: currentUser.userId,
+          userId: currentUser.id,
         },
       });
 
@@ -272,7 +272,8 @@ export async function PUT(
         }
         // Send email if email available
         if (clientEmail) {
-          const businessWhatsApp = process.env.BUSINESS_WHATSAPP_NUMBER || "2348012345678";
+          const businessWhatsApp =
+            process.env.BUSINESS_WHATSAPP_NUMBER || "2348012345678";
           const waMessage = encodeURIComponent(message);
           const waLink = `https://wa.me/${businessWhatsApp}?text=${waMessage}`;
           await sendEmail({
@@ -299,6 +300,147 @@ export async function PUT(
       "Booking PUT Error",
       error,
       "Failed to update booking",
+      500,
+    );
+  }
+}
+
+// PATCH - Confirm in-person payment (PAY_AT_SALON)
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } },
+) {
+  try {
+    const currentUser = await getCurrentUser();
+
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = params;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Booking ID is required" },
+        { status: 400 },
+      );
+    }
+
+    const booking = await prisma.booking.findUnique({
+      where: { id },
+      include: {
+        salon: true,
+        client: true,
+        service: true,
+      },
+    });
+
+    if (!booking) {
+      return NextResponse.json({ error: "Booking not found" }, { status: 404 });
+    }
+
+    // Only clients can confirm they will pay at salon
+    if (currentUser.role !== UserRole.CLIENT) {
+      return NextResponse.json(
+        { error: "Only clients can confirm in-person payment" },
+        { status: 403 },
+      );
+    }
+
+    // Verify ownership
+    if (booking.clientId !== currentUser.id) {
+      return NextResponse.json(
+        { error: "Forbidden - You can only confirm your own bookings" },
+        { status: 403 },
+      );
+    }
+
+    // Verify payment method is set to PAY_AT_SALON
+    if (booking.paymentMethod !== "PAY_AT_SALON") {
+      return NextResponse.json(
+        {
+          error:
+            "This booking is not set for in-person payment. Payment method is " +
+            booking.paymentMethod,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Booking must be in PENDING or AWAITING_PAYMENT status
+    const validStatuses = [
+      BookingStatus.PENDING,
+      BookingStatus.AWAITING_PAYMENT,
+      BookingStatus.CONFIRMED,
+      BookingStatus.PAYMENT_SUBMITTED,
+      BookingStatus.PAID,
+      BookingStatus.COMPLETED,
+      BookingStatus.CANCELLED,
+    ];
+    if (!validStatuses.includes(booking.status as BookingStatus)) {
+      return NextResponse.json(
+        {
+          error: `Cannot confirm in-person payment for booking with status: ${booking.status}`,
+        },
+        { status: 400 },
+      );
+    }
+
+    // Update booking to CONFIRMED status
+    const updatedBooking = await prisma.booking.update({
+      where: { id },
+      data: {
+        status: BookingStatus.CONFIRMED,
+        paymentStatus: "COMPLETED", // Customer confirmed they will pay at salon
+      },
+      include: {
+        salon: true,
+        client: true,
+        service: true,
+      },
+    });
+
+    // Send confirmation notification
+    try {
+      const salon = updatedBooking.salon;
+      const address = `${salon.name}, ${salon.address}, ${salon.city}`;
+      const clientName = updatedBooking.client?.fullName || "Guest";
+      const clientNumber =
+        updatedBooking.client?.phone || updatedBooking.clientPhone;
+      const clientEmail = updatedBooking.client?.email;
+
+      const message = `Hi ${clientName}, thanks for confirming! You'll pay at the salon (${salon.name}) during your visit.\n\nAddress: ${address}\n\nSee you soon!`;
+
+      if (clientNumber && salon.phone) {
+        await sendWhatsApp({ to: clientNumber, body: message });
+      }
+
+      if (clientEmail) {
+        await sendEmail({
+          to: clientEmail,
+          subject: `In-Person Payment Confirmed at ${salon.name}`,
+          text: message,
+          html: `<p>Hi ${clientName},</p><p>Thanks for confirming! You'll <b>pay at the salon</b> during your visit.</p><p><b>Salon:</b> ${salon.name}</p><p><b>Address:</b> ${address}</p><p>See you soon!</p>`,
+        });
+      }
+    } catch (notifyErr) {
+      console.error("Notification error:", notifyErr);
+      // Don't fail the request if notification fails
+    }
+
+    return NextResponse.json(
+      {
+        message:
+          "In-person payment confirmed. You'll pay when you arrive at the salon.",
+        booking: updatedBooking,
+      },
+      { status: 200 },
+    );
+  } catch (error) {
+    return apiError(
+      "Booking PATCH Error",
+      error,
+      "Failed to confirm in-person payment",
       500,
     );
   }
@@ -338,7 +480,7 @@ export async function DELETE(
 
     // Check authorization
     if (currentUser.role === UserRole.CLIENT) {
-      if (booking.clientId !== currentUser.userId) {
+      if (booking.clientId !== currentUser.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
     }
@@ -351,7 +493,7 @@ export async function DELETE(
       const salonAdmin = await prisma.salonAdmin.findFirst({
         where: {
           salonId: booking.salonId,
-          userId: currentUser.userId,
+          userId: currentUser.id,
         },
       });
 
@@ -365,7 +507,7 @@ export async function DELETE(
       const salonStaff = await prisma.salonStaff.findFirst({
         where: {
           salonId: booking.salonId,
-          userId: currentUser.userId,
+          userId: currentUser.id,
         },
       });
 

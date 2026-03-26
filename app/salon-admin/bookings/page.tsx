@@ -124,7 +124,7 @@ export default function BookingsPage() {
       setIsFetching(true);
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
 
@@ -175,7 +175,7 @@ export default function BookingsPage() {
       setIsFetching(true);
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
 

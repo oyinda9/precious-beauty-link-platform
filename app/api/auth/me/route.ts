@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     // Fetch full user details
     const user = await prisma.user.findUnique({
-      where: { id: currentUser.userId },
+      where: { id: currentUser.id },
       select: {
         id: true,
         email: true,
