@@ -17,7 +17,7 @@ export default function SuperAdminDashboard() {
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    router.push("/login");
+    router.push("/auth/login");
   };
 
   if (superadmin.loading) {

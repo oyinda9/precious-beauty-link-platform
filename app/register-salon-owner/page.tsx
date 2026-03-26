@@ -48,36 +48,43 @@ interface FormData {
   salonPhone: string;
 }
 
-type PlanKey = "free" | "basic" | "standard" | "premium";
+type PlanKey = "FREE" | "STARTER" | "STANDARD" | "GROWTH" | "PREMIUM";
 
 const PLANS = [
   {
-    key: "free" as PlanKey,
+    key: "FREE" as PlanKey,
     name: "Free / Trial",
     price: "₦0/mo",
     amount: 0,
-    desc: "Up to 2 staff, 5 bookings/mo, basic dashboard",
+    desc: "Up to 10 bookings/month, basic dashboard",
   },
   {
-    key: "basic" as PlanKey,
-    name: "Basic",
+    key: "STARTER" as PlanKey,
+    name: "Starter",
+    price: "₦5,000/mo",
+    amount: 5000,
+    desc: "Up to 30 bookings/month, WhatsApp notifications",
+  },
+  {
+    key: "STANDARD" as PlanKey,
+    name: "Standard",
     price: "₦10,000/mo",
     amount: 10000,
-    desc: "Up to 5 staff, unlimited bookings, WhatsApp notifications",
+    desc: "Up to 50 bookings/month, priority support",
   },
   {
-    key: "standard" as PlanKey,
-    name: "Standard",
-    price: "₦15,000/mo",
-    amount: 15000,
-    desc: "Up to 15 staff, unlimited bookings, priority support",
+    key: "GROWTH" as PlanKey,
+    name: "Growth",
+    price: "₦20,000/mo",
+    amount: 20000,
+    desc: "Up to 100 bookings/month, advanced analytics",
   },
   {
-    key: "premium" as PlanKey,
+    key: "PREMIUM" as PlanKey,
     name: "Premium",
     price: "₦30,000/mo",
     amount: 30000,
-    desc: "Unlimited staff, all features, priority support",
+    desc: "Unlimited bookings, all features, priority support",
   },
 ];
 
@@ -228,15 +235,15 @@ export default function RegisterSalonOwnerPage() {
     }
   };
 
-  // After plan selected: free → register directly, paid → show card form
+  // After plan selected: FREE → register directly, paid → show card form
   const handlePlanNext = () => {
     if (!selectedPlan) {
       setError("Please select a plan to continue");
       return;
     }
     setError("");
-    if (selectedPlan === "free") {
-      handleRegisterAndActivate("free");
+    if (selectedPlan === "FREE") {
+      handleRegisterAndActivate("FREE");
     } else {
       setStep("payment");
     }
@@ -302,7 +309,7 @@ export default function RegisterSalonOwnerPage() {
         loginData?.data?.token ||
         "";
 
-      if (planKey === "free") {
+      if (planKey === "FREE") {
         setSuccess("Registration successful! Redirecting...");
         setTimeout(() => router.push("/salon-admin/dashboard"), 1200);
         return;
@@ -890,7 +897,7 @@ export default function RegisterSalonOwnerPage() {
                         <Loader2 className="mr-2 w-4 h-4 animate-spin" />
                         Processing...
                       </>
-                    ) : selectedPlan === "free" ? (
+                    ) : selectedPlan === "FREE" ? (
                       <>
                         Complete Registration
                         <ChevronRight className="ml-2 w-4 h-4" />

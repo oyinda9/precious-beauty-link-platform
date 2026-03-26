@@ -65,7 +65,7 @@ export default function ClientBookingsPage() {
       try {
         const token = localStorage.getItem("authToken");
         if (!token) {
-          router.push("/login");
+          router.push("/auth/login");
           return;
         }
 
@@ -113,7 +113,7 @@ export default function ClientBookingsPage() {
 
   const handleLogout = () => {
     localStorage.removeItem("authToken");
-    router.push("/login");
+    router.push("/auth/login");
   };
 
   const getStatusColor = (status: string) => {

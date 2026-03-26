@@ -188,7 +188,7 @@ export default function ServicesPage() {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
       const res = await fetch("/api/salons/me", {
@@ -210,7 +210,7 @@ export default function ServicesPage() {
       const slug = salon.slug.toLowerCase();
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
       const res = await fetch(`/api/salons/${slug}/services`, {
@@ -269,7 +269,7 @@ export default function ServicesPage() {
       const slug = salon.slug.toLowerCase();
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
       const url = editingServiceId
@@ -321,7 +321,7 @@ export default function ServicesPage() {
       const slug = salon.slug.toLowerCase();
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
       const res = await fetch(`/api/salons/${slug}/services/${id}`, {
@@ -336,11 +336,7 @@ export default function ServicesPage() {
       await loadServices();
       setTimeout(() => setServiceSuccess(null), 3000);
     } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err.message || "Failed to delete service",
-        variant: "destructive",
-      });
+      setServiceError(err.message || "Failed to delete service");
     }
   };
 

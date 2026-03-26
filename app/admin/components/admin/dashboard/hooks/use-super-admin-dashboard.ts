@@ -24,7 +24,7 @@ export function useSuperAdminDashboard() {
     try {
       const token = localStorage.getItem("authToken");
       if (!token) {
-        router.push("/login");
+        router.push("/auth/login");
         return;
       }
 

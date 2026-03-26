@@ -8,9 +8,9 @@ const COOKIE_NAME = "auth_token";
 const COOKIE_MAX_AGE = 30 * 24 * 60 * 60; // 30 days
 
 export interface JWTPayload {
+  id: string;
   // fullName may be missing in some flows (e.g. service tokens), make it optional
   fullName?: string | null;
-  userId: string;
   email: string;
   role: UserRole;
 }
