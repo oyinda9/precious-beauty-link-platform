@@ -16,6 +16,7 @@ const PLAN_AMOUNT: Record<
 
 function getToken(request: NextRequest) {
   return (
+    request.cookies.get("auth_token")?.value ||
     request.cookies.get("token")?.value ||
     request.cookies.get("auth-token")?.value ||
     request.cookies.get("authToken")?.value ||
