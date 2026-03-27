@@ -35,7 +35,16 @@ import {
   Phone,
   User,
   DollarSign,
+  Eye,
+  Download,
+  FileText,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
 
 // Types
@@ -71,6 +80,10 @@ interface Booking {
     name: string;
     slug: string;
   };
+  payment?: {
+    proofOfPayment?: string;
+    status?: string;
+  };
 }
 
 export default function BookingsPage() {
@@ -88,6 +101,7 @@ export default function BookingsPage() {
   );
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 10;
+  const [selectedReceipt, setSelectedReceipt] = useState<string | null>(null);
 
   const router = useRouter();
 
@@ -581,6 +595,7 @@ export default function BookingsPage() {
                     formatDate={formatDate}
                     isFetching={isFetching}
                     updatingBookingId={updatingBookingId}
+                    setSelectedReceipt={setSelectedReceipt}
                   />
                 </div>
               )}
@@ -604,6 +619,7 @@ export default function BookingsPage() {
                     formatDate={formatDate}
                     isFetching={isFetching}
                     updatingBookingId={updatingBookingId}
+                    setSelectedReceipt={setSelectedReceipt}
                   />
                 </div>
               )}
@@ -627,6 +643,7 @@ export default function BookingsPage() {
                     formatDate={formatDate}
                     isFetching={isFetching}
                     updatingBookingId={updatingBookingId}
+                    setSelectedReceipt={setSelectedReceipt}
                   />
                 </div>
               )}
@@ -650,6 +667,7 @@ export default function BookingsPage() {
                     formatDate={formatDate}
                     isFetching={isFetching}
                     updatingBookingId={updatingBookingId}
+                    setSelectedReceipt={setSelectedReceipt}
                   />
                 </div>
               )}
@@ -725,6 +743,41 @@ export default function BookingsPage() {
           )}
         </div>
       </div>
+
+      {/* Receipt Preview Dialog */}
+      <Dialog
+        open={!!selectedReceipt}
+        onOpenChange={() => setSelectedReceipt(null)}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Payment Receipt</DialogTitle>
+          </DialogHeader>
+          {selectedReceipt && (
+            <div className="space-y-4">
+              {selectedReceipt.endsWith(".pdf") ? (
+                <iframe
+                  src={selectedReceipt}
+                  className="w-full h-96 rounded-lg border border-slate-200 dark:border-slate-700"
+                />
+              ) : (
+                <img
+                  src={selectedReceipt}
+                  alt="Receipt"
+                  className="w-full rounded-lg border border-slate-200 dark:border-slate-700"
+                />
+              )}
+              <Button
+                onClick={() => window.open(selectedReceipt, "_blank")}
+                className="w-full gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Download Receipt
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </SalonAdminLayout>
   );
 }
@@ -740,6 +793,7 @@ function BookingTable({
   formatDate,
   isFetching,
   updatingBookingId,
+  setSelectedReceipt,
 }: {
   bookings: Booking[];
   handleStatusChange: (id: string, status: string) => void;
@@ -750,6 +804,7 @@ function BookingTable({
   formatDate: (date: string) => string;
   isFetching: boolean;
   updatingBookingId: string | null;
+  setSelectedReceipt: (receipt: string | null) => void;
 }) {
   return (
     <>
@@ -773,6 +828,9 @@ function BookingTable({
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Status
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Receipt
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   WhatsApp
@@ -827,6 +885,12 @@ function BookingTable({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-2">
+                        <Badge
+                          className={`${status.badge} text-xs font-semibold gap-1.5 px-3 py-1.5`}
+                        >
+                          {status.icon}
+                          {booking.status}
+                        </Badge>
                         <Select
                           value={booking.status}
                           onValueChange={(val) =>
@@ -836,7 +900,7 @@ function BookingTable({
                             isFetching || updatingBookingId === booking.id
                           }
                         >
-                          <SelectTrigger className="h-8 text-xs bg-transparent border-slate-300 dark:border-slate-600">
+                          <SelectTrigger className="h-7 text-xs bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-600 w-auto hidden group-hover:block">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -847,6 +911,43 @@ function BookingTable({
                           </SelectContent>
                         </Select>
                       </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {booking.payment?.proofOfPayment ? (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              setSelectedReceipt(
+                                booking.payment!.proofOfPayment!,
+                              )
+                            }
+                            className="gap-1 h-8 text-xs"
+                          >
+                            <Eye className="w-3 h-3" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              window.open(
+                                booking.payment!.proofOfPayment!,
+                                "_blank",
+                              )
+                            }
+                            className="gap-1 h-8 text-xs"
+                          >
+                            <Download className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                          <FileText className="w-3 h-3" />
+                          No receipt
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right">
                       <Button
@@ -936,22 +1037,76 @@ function BookingTable({
                 </div>
               </div>
 
+              {booking.payment?.proofOfPayment && (
+                <div className="mb-3 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded">
+                  <p className="text-xs font-semibold text-blue-600 dark:text-blue-300 mb-2">
+                    Payment Receipt
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        setSelectedReceipt(booking.payment!.proofOfPayment!)
+                      }
+                      className="flex-1 gap-1 text-xs h-8"
+                    >
+                      <Eye className="w-3 h-3" />
+                      View
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        window.open(booking.payment!.proofOfPayment!, "_blank")
+                      }
+                      className="flex-1 gap-1 text-xs h-8"
+                    >
+                      <Download className="w-3 h-3" />
+                      Download
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <Select
-                  value={booking.status}
-                  onValueChange={(val) => handleStatusChange(booking.id, val)}
-                  disabled={isFetching || updatingBookingId === booking.id}
-                >
-                  <SelectTrigger className="flex-1 h-9 text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-600">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PENDING">Pending</SelectItem>
-                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
-                    <SelectItem value="COMPLETED">Completed</SelectItem>
-                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex-1">
+                  <Select
+                    value={booking.status}
+                    onValueChange={(val) => handleStatusChange(booking.id, val)}
+                    disabled={isFetching || updatingBookingId === booking.id}
+                  >
+                    <SelectTrigger className={`h-9 text-xs border-2 rounded-lg font-semibold ${status.badge}`}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PENDING">
+                        <div className="flex items-center gap-2">
+                          <Clock className="w-3 h-3" />
+                          Pending
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="CONFIRMED">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3" />
+                          Confirmed
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="COMPLETED">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3" />
+                          Completed
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="CANCELLED">
+                        <div className="flex items-center gap-2">
+                          <X className="w-3 h-3" />
+                          Cancelled
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <Button
                   size="sm"
                   onClick={() => sendWhatsAppMessage(booking)}

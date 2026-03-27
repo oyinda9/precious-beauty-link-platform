@@ -193,6 +193,7 @@ model Payment {
   paymentMethod           String        @default("BANK_TRANSFER")
   referenceNumber         String?       @unique
   bankTransferConfirmedAt DateTime?
+  proofOfPayment          String?
   confirmationNotes       String?
   status                  PaymentStatus @default(PENDING)
   createdAt               DateTime      @default(now())

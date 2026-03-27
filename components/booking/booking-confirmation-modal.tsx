@@ -15,6 +15,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { getBankDetails } from "@/lib/bank-details";
+import { ReceiptUpload } from "./receipt-upload";
 
 interface BookingConfirmationModalProps {
   bookingId: string;
@@ -296,6 +297,11 @@ export function BookingConfirmationModal({
               </div>
             )}
           </div>
+
+          {/* Receipt Upload Section */}
+          {paymentMethod === "BANK_TRANSFER" && (
+            <ReceiptUpload bookingId={bookingId} onClose={onClose} />
+          )}
 
           {/* Next Steps */}
           <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-2 border border-purple-200 dark:border-purple-800">

@@ -168,6 +168,13 @@ export async function GET(req: NextRequest) {
       bookings = await prisma.booking.findMany({
         include: {
           service: true,
+          payment: {
+            select: {
+              id: true,
+              proofOfPayment: true,
+              status: true,
+            },
+          },
           salon: {
             select: {
               id: true,
@@ -226,6 +233,13 @@ export async function GET(req: NextRequest) {
         },
         include: {
           service: true,
+          payment: {
+            select: {
+              id: true,
+              proofOfPayment: true,
+              status: true,
+            },
+          },
           salon: {
             select: {
               id: true,
@@ -268,6 +282,13 @@ export async function GET(req: NextRequest) {
         },
         include: {
           service: true,
+          payment: {
+            select: {
+              id: true,
+              proofOfPayment: true,
+              status: true,
+            },
+          },
           salon: {
             select: {
               id: true,
