@@ -17,12 +17,12 @@ export const metadata: Metadata = {
   description: "Beauty link platform",
   icons: {
     icon: "/favicon.png",
-    apple: "/icon-light-32x32.png",
+    apple: "/favicon.png",
     other: [
       {
         rel: "icon",
-        url: "/icon.svg",
-        type: "image/svg+xml",
+        url: "/favicon.png",
+        type: "image/png",
       },
     ],
   },
