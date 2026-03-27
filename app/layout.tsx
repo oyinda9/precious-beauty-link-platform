@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Precious Beauty",
+  title: "SaloonBook  ",
   description: "Beauty link platform",
   icons: {
     icon: "/favicon.png",
