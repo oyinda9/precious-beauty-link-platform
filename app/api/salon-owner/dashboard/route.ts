@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       const payload = JSON.parse(
         Buffer.from(token.split(".")[1], "base64").toString(),
       );
-      userId = payload.sub || payload.userId;
+      userId = payload.id || payload.sub || payload.userId;
     } catch (e) {
       return apiError("Invalid token", 401);
     }
@@ -57,7 +57,7 @@ export async function GET(req: NextRequest) {
     const salon = await prisma.salon.findUnique({
       where: { id: salonId },
       include: {
-        subscriptionPlan: true,
+        subscription: true,
       },
     });
 
@@ -95,7 +95,9 @@ export async function GET(req: NextRequest) {
       (b) => b.status === "PENDING",
     ).length;
     const totalRevenue = bookings
-      .filter((b) => b.status === "COMPLETED" && b.paymentStatus === "PAID")
+      .filter(
+        (b) => b.status === "COMPLETED" && b.paymentStatus === "COMPLETED",
+      )
       .reduce((sum, b) => sum + b.totalPrice, 0);
 
     // Get reviews for THIS salon only
@@ -135,8 +137,8 @@ export async function GET(req: NextRequest) {
         state: salon.state,
         phone: salon.phone,
         email: salon.email,
-        subscriptionStatus: salon.subscriptionStatus,
-        subscriptionPlan: salon.subscriptionPlan?.planType,
+        subscriptionStatus: salon.subscription?.status,
+        subscriptionPlan: salon.subscription?.plan,
       },
       upcomingBookings: bookings
         .filter((b) => b.status !== "CANCELLED")

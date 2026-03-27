@@ -30,8 +30,11 @@ import {
   ChevronRight,
   CheckCircle,
   X,
-  MessageSquare,
-  Loader2, // ✅ add
+  MessageCircle,
+  Loader2,
+  Phone,
+  User,
+  DollarSign,
 } from "lucide-react";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
 
@@ -61,8 +64,8 @@ interface Booking {
       phone: string;
     };
   };
-  service?: BookingService; // single shape
-  services?: BookingService[]; // multi shape
+  service?: BookingService;
+  services?: BookingService[];
   salon: {
     id: string;
     name: string;
@@ -78,35 +81,21 @@ export default function BookingsPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState<
-    "today" | "week" | "month" | "all"
+    "today" | "yesterday" | "upcoming" | "all"
   >("all");
   const [updatingBookingId, setUpdatingBookingId] = useState<string | null>(
     null,
   );
-
-  // ✅ Pagination state
-  const PAGE_SIZE = 8;
   const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 10;
 
   const router = useRouter();
 
-  const sortBookingsNewestFirst = (list: Booking[]) => {
+  const sortBookingsByDate = (list: Booking[]) => {
     return [...list].sort((a, b) => {
-      const aTime = new Date(
-        a.createdAt || a.updatedAt || a.bookingDate,
-      ).getTime();
-      const bTime = new Date(
-        b.createdAt || b.updatedAt || b.bookingDate,
-      ).getTime();
-
-      // fallback if either date is invalid
-      if (Number.isNaN(aTime) && Number.isNaN(bTime)) {
-        return b.id.localeCompare(a.id);
-      }
-      if (Number.isNaN(aTime)) return 1;
-      if (Number.isNaN(bTime)) return -1;
-
-      return bTime - aTime;
+      const aDate = new Date(a.bookingDate).getTime();
+      const bDate = new Date(b.bookingDate).getTime();
+      return bDate - aDate;
     });
   };
 
@@ -114,7 +103,6 @@ export default function BookingsPage() {
     fetchBookings();
   }, []);
 
-  // ✅ Reset to first page when filters/search change
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, searchTerm, dateRange]);
@@ -145,7 +133,7 @@ export default function BookingsPage() {
             : [],
       }));
 
-      setBookings(sortBookingsNewestFirst(normalized));
+      setBookings(sortBookingsByDate(normalized));
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -191,34 +179,26 @@ export default function BookingsPage() {
       if (!response.ok) {
         const msg =
           (await getApiErrorMessage(response)) || "Status update failed";
-
         toast({
           title: "Status update failed",
           description: msg,
           variant: "destructive",
-          className: "bg-red-600 text-white border-red-700",
         });
-
         return;
       }
 
-      // instant local update + keep newest order
       setBookings((prev) => {
-        const next = sortBookingsNewestFirst(
+        const next = sortBookingsByDate(
           prev.map((b) =>
             b.id === bookingId
               ? { ...b, status: newStatus as Booking["status"] }
               : b,
           ),
         );
-
         return next;
       });
 
-      toast({
-        title: "Booking status updated successfully",
-      });
-
+      toast({ title: "Booking status updated successfully" });
       await fetchBookings();
     } catch (err: any) {
       toast({
@@ -249,7 +229,6 @@ export default function BookingsPage() {
     if (phone.startsWith("0")) phone = "234" + phone.slice(1);
 
     const statusToUse = statusOverride ?? booking.status;
-
     const statusTextMap: Record<Booking["status"], string> = {
       PENDING: "is pending",
       CONFIRMED: "has been confirmed",
@@ -282,14 +261,7 @@ export default function BookingsPage() {
     const list = getBookingServices(booking);
     if (!list.length) return "No service";
     if (list.length === 1) return list[0].name;
-    return `${list[0].name} +${list.length - 1} more`;
-  };
-
-  const getTotalDuration = (booking: Booking): number => {
-    return getBookingServices(booking).reduce(
-      (sum, s) => sum + (s.duration || 0),
-      0,
-    );
+    return `${list[0].name} +${list.length - 1}`;
   };
 
   const filteredBookings = bookings
@@ -299,6 +271,9 @@ export default function BookingsPage() {
       return (
         searchTerm === "" ||
         b.clientPhone?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        b.client?.user?.fullName
+          ?.toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         services.some((s) =>
           s.name.toLowerCase().includes(searchTerm.toLowerCase()),
         )
@@ -306,23 +281,22 @@ export default function BookingsPage() {
     });
 
   const getDateFilteredBookings = () => {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
     return filteredBookings.filter((b) => {
       const bookingDate = new Date(b.bookingDate);
+      bookingDate.setHours(0, 0, 0, 0);
+
       switch (dateRange) {
         case "today":
-          return bookingDate >= today;
-        case "week": {
-          const weekAgo = new Date(today);
-          weekAgo.setDate(weekAgo.getDate() - 7);
-          return bookingDate >= weekAgo;
-        }
-        case "month": {
-          const monthAgo = new Date(today);
-          monthAgo.setMonth(monthAgo.getMonth() - 1);
-          return bookingDate >= monthAgo;
-        }
+          return bookingDate.getTime() === today.getTime();
+        case "yesterday":
+          return bookingDate.getTime() === yesterday.getTime();
+        case "upcoming":
+          return bookingDate.getTime() > today.getTime();
         default:
           return true;
       }
@@ -330,52 +304,58 @@ export default function BookingsPage() {
   };
 
   const displayBookings = getDateFilteredBookings();
-
-  // Pagination calculations
   const totalPages = Math.max(1, Math.ceil(displayBookings.length / PAGE_SIZE));
-
   const startIndex = (currentPage - 1) * PAGE_SIZE;
   const endIndex = startIndex + PAGE_SIZE;
-
   const paginatedBookings = displayBookings.slice(startIndex, endIndex);
-
   const showingFrom = displayBookings.length === 0 ? 0 : startIndex + 1;
   const showingTo = Math.min(endIndex, displayBookings.length);
 
-  // Keep current page valid when data size changes
   useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
+    if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
-  const getStatusColor = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case "COMPLETED":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800";
+        return {
+          bg: "bg-emerald-50 dark:bg-emerald-950/30",
+          text: "text-emerald-700 dark:text-emerald-400",
+          badge:
+            "bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300",
+          icon: <CheckCircle className="w-3 h-3" />,
+        };
       case "CONFIRMED":
-        return "bg-sky-100 text-sky-700 border-sky-200 dark:bg-sky-900/30 dark:text-sky-400 dark:border-sky-800";
+        return {
+          bg: "bg-sky-50 dark:bg-sky-950/30",
+          text: "text-sky-700 dark:text-sky-400",
+          badge: "bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-300",
+          icon: <CheckCircle className="w-3 h-3" />,
+        };
       case "PENDING":
-        return "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800";
+        return {
+          bg: "bg-amber-50 dark:bg-amber-950/30",
+          text: "text-amber-700 dark:text-amber-400",
+          badge:
+            "bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300",
+          icon: <Clock className="w-3 h-3" />,
+        };
       case "CANCELLED":
-        return "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/30 dark:text-rose-400 dark:border-rose-800";
+        return {
+          bg: "bg-rose-50 dark:bg-rose-950/30",
+          text: "text-rose-700 dark:text-rose-400",
+          badge:
+            "bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300",
+          icon: <X className="w-3 h-3" />,
+        };
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700";
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return <CheckCircle className="w-3 h-3" />;
-      case "CONFIRMED":
-        return <CheckCircle className="w-3 h-3" />;
-      case "PENDING":
-        return <Clock className="w-3 h-3" />;
-      case "CANCELLED":
-        return <X className="w-3 h-3" />;
-      default:
-        return null;
+        return {
+          bg: "bg-slate-50 dark:bg-slate-800",
+          text: "text-slate-700 dark:text-slate-400",
+          badge:
+            "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400",
+          icon: null,
+        };
     }
   };
 
@@ -389,14 +369,73 @@ export default function BookingsPage() {
       .slice(0, 2);
   };
 
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    today.setHours(0, 0, 0, 0);
+    yesterday.setHours(0, 0, 0, 0);
+    const bookingDate = new Date(dateString);
+    bookingDate.setHours(0, 0, 0, 0);
+
+    if (bookingDate.getTime() === today.getTime()) {
+      return "Today";
+    } else if (bookingDate.getTime() === yesterday.getTime()) {
+      return "Yesterday";
+    } else {
+      return date.toLocaleDateString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+      });
+    }
+  };
+
+  // Group bookings by date category
+  const getGroupedBookings = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const groups: {
+      today: Booking[];
+      yesterday: Booking[];
+      upcoming: Booking[];
+      past: Booking[];
+    } = {
+      today: [],
+      yesterday: [],
+      upcoming: [],
+      past: [],
+    };
+
+    paginatedBookings.forEach((booking) => {
+      const bookingDate = new Date(booking.bookingDate);
+      bookingDate.setHours(0, 0, 0, 0);
+
+      if (bookingDate.getTime() === today.getTime()) {
+        groups.today.push(booking);
+      } else if (bookingDate.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(booking);
+      } else if (bookingDate.getTime() > today.getTime()) {
+        groups.upcoming.push(booking);
+      } else {
+        groups.past.push(booking);
+      }
+    });
+
+    return groups;
+  };
+
   if (loading) {
     return (
       <SalonAdminLayout>
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center">
           <div className="text-center">
-            <div className="relative">
-              <div className="w-16 h-16 border-4 border-slate-200 dark:border-slate-800 border-t-slate-600 rounded-full animate-spin mx-auto mb-4"></div>
-            </div>
+            <div className="w-16 h-16 border-4 border-slate-200 dark:border-slate-700 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-slate-600 dark:text-slate-400 font-medium">
               Loading bookings...
             </p>
@@ -406,156 +445,388 @@ export default function BookingsPage() {
     );
   }
 
+  const groupedBookings = getGroupedBookings();
+  const hasBookings = Object.values(groupedBookings).some(
+    (group) => group.length > 0,
+  );
+
   return (
     <SalonAdminLayout>
-      <Card className="relative border-0 bg-white dark:bg-slate-800 shadow-sm">
-        {/* ✅ Global backend preloader overlay */}
-        {(isFetching || updatingBookingId) && (
-          <div className="absolute inset-0 z-50 bg-white/70 dark:bg-slate-900/70 backdrop-blur-[1px] flex items-center justify-center">
-            <div className="flex items-center gap-2 rounded-lg px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span className="text-sm text-slate-700 dark:text-slate-300">
-                Please wait...
-              </span>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-10">
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="p-2.5 bg-linear-to-br from-purple-600 to-pink-600 rounded-xl shadow-lg shadow-purple-600/20">
+                    <CalendarDays className="w-5 h-5 text-white" />
+                  </div>
+                  <h1 className="text-2xl sm:text-3xl font-bold bg-linear-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                    Appointments
+                  </h1>
+                </div>
+                <p className="text-slate-500 dark:text-slate-400 ml-12">
+                  Manage and track all your salon bookings
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    {displayBookings.length} total bookings
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        )}
 
-        <CardHeader className="p-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <CalendarDays className="w-5 h-5 text-slate-600" />
-                All Bookings
-              </CardTitle>
-              <CardDescription>
-                Manage and track all appointments
-              </CardDescription>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-3">
+          {/* Filters */}
+          <div className="bg-white dark:bg-slate-800/80 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 mb-8 shadow-sm">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <Input
-                  placeholder="Search bookings..."
+                  placeholder="Search by client, phone, or service..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 w-full sm:w-64 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600"
+                  className="pl-9 h-11 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600 focus:ring-2 focus:ring-blue-500/30"
                 />
               </div>
               <Select
                 value={dateRange}
-                onValueChange={(val) =>
-                  setDateRange(val as "today" | "week" | "month" | "all")
-                }
+                onValueChange={(val) => setDateRange(val as any)}
               >
-                <SelectTrigger className="w-full sm:w-40 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600">
+                <SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600">
                   <Calendar className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Date range" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All time</SelectItem>
+                  <SelectItem value="all">All dates</SelectItem>
                   <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="week">This week</SelectItem>
-                  <SelectItem value="month">This month</SelectItem>
+                  <SelectItem value="yesterday">Yesterday</SelectItem>
+                  <SelectItem value="upcoming">Upcoming</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-40 bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600">
+                <SelectTrigger className="h-11 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-600">
                   <Filter className="w-4 h-4 mr-2" />
-                  <SelectValue placeholder="Filter by status" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="ALL">All Status</SelectItem>
+                  <SelectItem value="ALL">All status</SelectItem>
                   <SelectItem value="PENDING">Pending</SelectItem>
                   <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                   <SelectItem value="COMPLETED">Completed</SelectItem>
                   <SelectItem value="CANCELLED">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSearchTerm("");
+                  setDateRange("all");
+                  setStatusFilter("ALL");
+                }}
+                className="h-11 border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                Clear filters
+              </Button>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="p-2 sm:p-6 pt-0">
-          {/* Mobile Booking Cards */}
-          <div className="lg:hidden space-y-4">
-            {displayBookings.length === 0 ? (
-              <div className="text-center py-12">
-                <CalendarDays className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-                <p className="text-slate-500">No bookings found</p>
+
+          {/* Loading Overlay */}
+          {(isFetching || updatingBookingId) && (
+            <div className="fixed inset-0 z-50 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm flex items-center justify-center">
+              <div className="flex items-center gap-3 rounded-2xl px-6 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xl">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Processing...
+                </span>
               </div>
-            ) : (
-              paginatedBookings.map((booking) => (
-                <Card
-                  key={booking.id}
-                  className="overflow-hidden border-0 shadow-sm w-full"
-                >
-                  <div
-                    className={`h-1 w-full ${
-                      booking.status === "COMPLETED"
-                        ? "bg-emerald-500"
-                        : booking.status === "CONFIRMED"
-                          ? "bg-sky-500"
-                          : booking.status === "PENDING"
-                            ? "bg-amber-500"
-                            : "bg-rose-500"
-                    }`}
+            </div>
+          )}
+
+          {/* Bookings Tables - Grouped by Date */}
+          {!hasBookings ? (
+            <div className="text-center py-16 bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+              <div className="w-20 h-20 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CalendarDays className="w-10 h-10 text-slate-400" />
+              </div>
+              <p className="text-lg font-medium text-slate-600 dark:text-slate-400">
+                No bookings found
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-500 mt-1">
+                Try adjusting your filters
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Today's Bookings */}
+              {groupedBookings.today.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="px-4 py-1.5 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold">
+                      Today
+                    </div>
+                    <div className="flex-1 h-px bg-gradient-to-r from-blue-200 to-transparent dark:from-blue-800"></div>
+                  </div>
+                  <BookingTable
+                    bookings={groupedBookings.today}
+                    handleStatusChange={handleStatusChange}
+                    sendWhatsAppMessage={sendWhatsAppMessage}
+                    getServiceLabel={getServiceLabel}
+                    getInitials={getInitials}
+                    getStatusConfig={getStatusConfig}
+                    formatDate={formatDate}
+                    isFetching={isFetching}
+                    updatingBookingId={updatingBookingId}
                   />
-                  <CardContent className="p-3 sm:p-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between mb-3">
+                </div>
+              )}
+
+              {/* Yesterday's Bookings */}
+              {groupedBookings.yesterday.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4 mt-8">
+                    <div className="px-4 py-1.5 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 text-sm font-semibold">
+                      Yesterday
+                    </div>
+                    <div className="flex-1 h-px bg-gradient-to-r from-purple-200 to-transparent dark:from-purple-800"></div>
+                  </div>
+                  <BookingTable
+                    bookings={groupedBookings.yesterday}
+                    handleStatusChange={handleStatusChange}
+                    sendWhatsAppMessage={sendWhatsAppMessage}
+                    getServiceLabel={getServiceLabel}
+                    getInitials={getInitials}
+                    getStatusConfig={getStatusConfig}
+                    formatDate={formatDate}
+                    isFetching={isFetching}
+                    updatingBookingId={updatingBookingId}
+                  />
+                </div>
+              )}
+
+              {/* Upcoming Bookings */}
+              {groupedBookings.upcoming.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4 mt-8">
+                    <div className="px-4 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-sm font-semibold">
+                      Upcoming
+                    </div>
+                    <div className="flex-1 h-px bg-gradient-to-r from-emerald-200 to-transparent dark:from-emerald-800"></div>
+                  </div>
+                  <BookingTable
+                    bookings={groupedBookings.upcoming}
+                    handleStatusChange={handleStatusChange}
+                    sendWhatsAppMessage={sendWhatsAppMessage}
+                    getServiceLabel={getServiceLabel}
+                    getInitials={getInitials}
+                    getStatusConfig={getStatusConfig}
+                    formatDate={formatDate}
+                    isFetching={isFetching}
+                    updatingBookingId={updatingBookingId}
+                  />
+                </div>
+              )}
+
+              {/* Past Bookings */}
+              {groupedBookings.past.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-3 mb-4 mt-8">
+                    <div className="px-4 py-1.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-sm font-semibold">
+                      Past
+                    </div>
+                    <div className="flex-1 h-px bg-gradient-to-r from-slate-200 to-transparent dark:from-slate-700"></div>
+                  </div>
+                  <BookingTable
+                    bookings={groupedBookings.past}
+                    handleStatusChange={handleStatusChange}
+                    sendWhatsAppMessage={sendWhatsAppMessage}
+                    getServiceLabel={getServiceLabel}
+                    getInitials={getInitials}
+                    getStatusConfig={getStatusConfig}
+                    formatDate={formatDate}
+                    isFetching={isFetching}
+                    updatingBookingId={updatingBookingId}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Showing{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {showingFrom}
+                </span>{" "}
+                to{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {showingTo}
+                </span>{" "}
+                of{" "}
+                <span className="font-medium text-slate-700 dark:text-slate-300">
+                  {displayBookings.length}
+                </span>{" "}
+                results
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="h-9 px-4 border-slate-200 dark:border-slate-600"
+                >
+                  ← Previous
+                </Button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum = currentPage;
+                    if (totalPages <= 5) pageNum = i + 1;
+                    else if (currentPage <= 3) pageNum = i + 1;
+                    else if (currentPage >= totalPages - 2)
+                      pageNum = totalPages - 4 + i;
+                    else pageNum = currentPage - 2 + i;
+
+                    if (pageNum > totalPages) return null;
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={
+                          currentPage === pageNum ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`h-9 w-9 p-0 ${currentPage === pageNum ? "bg-blue-600 hover:bg-blue-700" : "border-slate-200 dark:border-slate-600"}`}
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setCurrentPage(Math.min(totalPages, currentPage + 1))
+                  }
+                  disabled={currentPage === totalPages}
+                  className="h-9 px-4 border-slate-200 dark:border-slate-600"
+                >
+                  Next →
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </SalonAdminLayout>
+  );
+}
+
+// Separate component for the booking table (reused for each date group)
+function BookingTable({
+  bookings,
+  handleStatusChange,
+  sendWhatsAppMessage,
+  getServiceLabel,
+  getInitials,
+  getStatusConfig,
+  formatDate,
+  isFetching,
+  updatingBookingId,
+}: {
+  bookings: Booking[];
+  handleStatusChange: (id: string, status: string) => void;
+  sendWhatsAppMessage: (booking: Booking) => void;
+  getServiceLabel: (booking: Booking) => string;
+  getInitials: (name: string) => string;
+  getStatusConfig: (status: string) => any;
+  formatDate: (date: string) => string;
+  isFetching: boolean;
+  updatingBookingId: string | null;
+}) {
+  return (
+    <>
+      {/* Desktop Table View */}
+      <div className="hidden lg:block bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-slate-50 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-700">
+              <tr>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Client
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Service
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Date & Time
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Amount
+                </th>
+                <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  WhatsApp
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              {bookings.map((booking) => {
+                const status = getStatusConfig(booking.status);
+                return (
+                  <tr
+                    key={booking.id}
+                    className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                  >
+                    <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarFallback className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300">
-                            {getInitials("Guest")}
+                        <Avatar className="h-9 w-9 bg-gradient-to-br from-blue-500 to-blue-600">
+                          <AvatarFallback className="text-white text-xs">
+                            {getInitials(
+                              booking.client?.user?.fullName || "Client",
+                            )}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-semibold text-slate-800 dark:text-white text-base sm:text-lg">
-                            Guest Client
+                          <p className="font-medium text-slate-800 dark:text-white text-sm">
+                            {booking.client?.user?.fullName || "Guest Client"}
                           </p>
-                          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-                            {getServiceLabel(booking)} (
-                            {getBookingServices(booking).length})
-                          </p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            {booking.clientPhone ? (
-                              `📞 ${booking.clientPhone}`
-                            ) : (
-                              <span className="text-rose-500">No phone</span>
-                            )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {booking.clientPhone || "—"}
                           </p>
                         </div>
                       </div>
-                      <Badge
-                        className={`${getStatusColor(booking.status)} flex items-center gap-1 w-fit px-3 py-1 mt-2 sm:mt-0`}
-                      >
-                        {getStatusIcon(booking.status)}
-                        {booking.status}
-                      </Badge>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 mb-3">
-                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
-                        <Calendar className="w-4 h-4 text-slate-600 mb-1" />
-                        <p className="text-xs text-slate-500">Date</p>
-                        <p className="text-sm font-medium">
-                          {new Date(booking.bookingDate).toLocaleDateString()}
-                        </p>
-                      </div>
-                      <div className="bg-slate-50 dark:bg-slate-700/50 rounded-lg p-2">
-                        <Clock className="w-4 h-4 text-slate-600 mb-1" />
-                        <p className="text-xs text-slate-500">Time</p>
-                        <p className="text-sm font-medium">
-                          {booking.startTime}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-col xs:flex-row items-start xs:items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 gap-2">
-                      <div>
-                        <p className="text-xs text-slate-500">Total Amount</p>
-                        <p className="text-lg font-bold text-slate-800 dark:text-white">
-                          ₦{booking.totalPrice.toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex flex-col gap-2 w-full xs:flex-row xs:items-center xs:w-auto">
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 font-medium">
+                        {getServiceLabel(booking)}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                        {booking.startTime}
+                      </p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {formatDate(booking.bookingDate)}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm font-bold text-slate-800 dark:text-white">
+                        ₦{booking.totalPrice.toLocaleString()}
+                      </p>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
                         <Select
                           value={booking.status}
                           onValueChange={(val) =>
@@ -563,9 +834,9 @@ export default function BookingsPage() {
                           }
                           disabled={
                             isFetching || updatingBookingId === booking.id
-                          } // ✅ add
+                          }
                         >
-                          <SelectTrigger className="w-full xs:w-32 h-9">
+                          <SelectTrigger className="h-8 text-xs bg-transparent border-slate-300 dark:border-slate-600">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -575,216 +846,127 @@ export default function BookingsPage() {
                             <SelectItem value="CANCELLED">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => sendWhatsAppMessage(booking)}
-                          disabled={
-                            isFetching || updatingBookingId === booking.id
-                          } // ✅ add
-                          className="rounded-full border-green-500 text-green-700 bg-white hover:bg-green-50 w-full xs:w-auto flex items-center justify-center gap-2"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            viewBox="0 0 24 24"
-                            fill="currentColor"
-                          >
-                            <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
-                          </svg>
-                          WhatsApp
-                        </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden lg:block overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-700">
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    Client
-                  </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    Service
-                  </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    Date & Time
-                  </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    Status
-                  </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    Amount
-                  </th>
-                  <th className="text-left py-4 px-4 text-sm font-semibold text-slate-600 dark:text-slate-400">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {displayBookings.length === 0 ? (
-                  <tr>
-                    <td
-                      colSpan={6}
-                      className="text-center py-12 text-slate-500"
-                    >
-                      No bookings found
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <Button
+                        size="sm"
+                        onClick={() => sendWhatsAppMessage(booking)}
+                        disabled={
+                          isFetching || updatingBookingId === booking.id
+                        }
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white h-8 px-3 flex items-center gap-2"
+                        title="Send WhatsApp message"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                        WhatsApp
+                      </Button>
                     </td>
                   </tr>
-                ) : (
-                  paginatedBookings.map((booking) => (
-                    <tr
-                      key={booking.id}
-                      className="border-b border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                    >
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarFallback className="bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300">
-                              {getInitials("Guest")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium text-slate-800 dark:text-white">
-                              Guest Client
-                            </p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="font-medium">
-                            {getServiceLabel(booking)}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {getTotalDuration(booking)} mins
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 text-sm">
-                            <Calendar className="w-4 h-4 text-slate-500" />
-                            {new Date(booking.bookingDate).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm">
-                            <Clock className="w-4 h-4 text-slate-500" />
-                            {booking.startTime} - {booking.endTime}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <Badge
-                          className={`${getStatusColor(booking.status)} flex items-center gap-1 w-fit px-3 py-1`}
-                        >
-                          {getStatusIcon(booking.status)}
-                          {booking.status}
-                        </Badge>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div>
-                          <p className="text-lg font-bold text-slate-800 dark:text-white">
-                            ₦{booking.totalPrice.toLocaleString()}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center gap-2">
-                          <Select
-                            value={booking.status}
-                            onValueChange={(val) =>
-                              handleStatusChange(booking.id, val)
-                            }
-                            disabled={
-                              isFetching || updatingBookingId === booking.id
-                            } // ✅ add
-                          >
-                            <SelectTrigger className="w-32">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="PENDING">Pending</SelectItem>
-                              <SelectItem value="CONFIRMED">
-                                Confirmed
-                              </SelectItem>
-                              <SelectItem value="COMPLETED">
-                                Completed
-                              </SelectItem>
-                              <SelectItem value="CANCELLED">
-                                Cancelled
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => sendWhatsAppMessage(booking)}
-                            disabled={
-                              isFetching || updatingBookingId === booking.id
-                            } // ✅ add
-                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                          >
-                            <svg
-                              className="w-4 h-4 mr-2"
-                              viewBox="0 0 24 24"
-                              fill="currentColor"
-                            >
-                              <path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91C2.13 13.91 2.75 15.79 3.86 17.33L2.08 21.83L6.72 20.09C8.22 21.09 10 21.66 11.96 21.66C17.42 21.66 21.87 17.21 21.87 11.75C21.87 6.29 17.5 2 12.04 2Z M12.04 4.5C16.14 4.5 19.37 7.73 19.37 11.83C19.37 15.93 16.14 19.16 12.04 19.16C10.36 19.16 8.78 18.64 7.47 17.73L4.5 18.67L5.48 15.82C4.5 14.45 3.96 12.8 3.96 11.09C3.96 7 7.19 3.77 11.29 3.77L12.04 4.5Z" />
-                            </svg>
-                            WhatsApp
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-          {/* ✅ Simple Mobile-Friendly Pagination */}
-          {totalPages > 1 && (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200 dark:border-slate-700 mt-6">
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                {displayBookings.length === 0
-                  ? "No results"
-                  : `${showingFrom}–${showingTo} of ${displayBookings.length}`}
-              </p>
+      {/* Mobile View - Compact Table Style */}
+      <div className="lg:hidden space-y-3">
+        {bookings.map((booking) => {
+          const status = getStatusConfig(booking.status);
+          return (
+            <div
+              key={booking.id}
+              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 bg-gradient-to-br from-blue-500 to-blue-600">
+                    <AvatarFallback className="text-white text-sm">
+                      {getInitials(booking.client?.user?.fullName || "Client")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-semibold text-slate-800 dark:text-white">
+                      {booking.client?.user?.fullName || "Guest Client"}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {booking.clientPhone || "No phone"}
+                    </p>
+                  </div>
+                </div>
+                <Badge className={`${status.badge} text-xs font-medium gap-1`}>
+                  {status.icon}
+                  {booking.status}
+                </Badge>
+              </div>
 
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
+              <div className="grid grid-cols-2 gap-3 mb-3 py-2 border-t border-b border-slate-100 dark:border-slate-700">
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Service
+                  </p>
+                  <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+                    {getServiceLabel(booking)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Time
+                  </p>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-white">
+                    {booking.startTime}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Date
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {formatDate(booking.bookingDate)}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Amount
+                  </p>
+                  <p className="text-base font-bold text-slate-800 dark:text-white">
+                    ₦{booking.totalPrice.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Select
+                  value={booking.status}
+                  onValueChange={(val) => handleStatusChange(booking.id, val)}
+                  disabled={isFetching || updatingBookingId === booking.id}
                 >
-                  ← Prev
-                </Button>
-
-                <span className="px-3 py-1 text-sm text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 rounded">
-                  {currentPage} / {totalPages}
-                </span>
-
+                  <SelectTrigger className="flex-1 h-9 text-xs bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-600">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="CONFIRMED">Confirmed</SelectItem>
+                    <SelectItem value="COMPLETED">Completed</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelled</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Button
-                  variant="outline"
                   size="sm"
-                  onClick={() =>
-                    setCurrentPage(Math.min(totalPages, currentPage + 1))
-                  }
-                  disabled={currentPage === totalPages}
+                  onClick={() => sendWhatsAppMessage(booking)}
+                  disabled={isFetching || updatingBookingId === booking.id}
+                  className="bg-emerald-500 hover:bg-emerald-600 text-white h-9 px-3 flex items-center gap-2"
+                  title="Send WhatsApp message"
                 >
-                  Next →
+                  <MessageCircle className="w-4 h-4" />
+                  WhatsApp
                 </Button>
               </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
-    </SalonAdminLayout>
+          );
+        })}
+      </div>
+    </>
   );
 }

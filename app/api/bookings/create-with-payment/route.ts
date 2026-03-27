@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
           error:
             "Missing required fields: salonId, serviceId, bookingDate, startTime",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,14 +43,14 @@ export async function POST(request: NextRequest) {
         {
           error: "paymentMethod must be BANK_TRANSFER or PAY_AT_SALON",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!clientPhone && !clientId) {
       return NextResponse.json(
         { error: "Either clientPhone or clientId must be provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
     if (bookingDateTime < new Date()) {
       return NextResponse.json(
         { error: "Booking date must be in the future" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -77,15 +77,12 @@ export async function POST(request: NextRequest) {
       notes,
     });
 
-    // Get salon bank details for bank transfer
+    // Get bank details for bank transfer from environment
     let bankDetails = null;
     if (paymentMethod === "BANK_TRANSFER") {
       const salon = await require("@/lib/prisma").prisma.salon.findUnique({
         where: { id: salonId },
         select: {
-          bankAccountName: true,
-          bankAccountNumber: true,
-          bankName: true,
           name: true,
           phone: true,
         },
@@ -94,11 +91,9 @@ export async function POST(request: NextRequest) {
       if (salon) {
         bankDetails = {
           salonName: salon.name,
-          accountName: salon.bankAccountName,
-          accountNumber: salon.bankAccountNumber
-            ? `****${salon.bankAccountNumber.slice(-4)}`
-            : null,
-          bankName: salon.bankName,
+          accountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || null,
+          accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER || null,
+          bankName: process.env.NEXT_PUBLIC_BANK_NAME || null,
           amount: booking.totalPrice,
           reference: booking.id,
         };
@@ -124,7 +119,7 @@ export async function POST(request: NextRequest) {
             ? "Booking created. Please transfer the amount shown above to the salon account."
             : "Booking created. Payment will be collected at the salon.",
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Create booking error:", error);
@@ -133,7 +128,7 @@ export async function POST(request: NextRequest) {
         error:
           error instanceof Error ? error.message : "Failed to create booking",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -150,7 +145,7 @@ export async function GET(request: NextRequest) {
     if (!salonId) {
       return NextResponse.json(
         { error: "salonId is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -174,7 +169,7 @@ export async function GET(request: NextRequest) {
     console.error("Check quota error:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

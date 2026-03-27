@@ -37,7 +37,7 @@ export async function verifyToken(
     const payload = JSON.parse(Buffer.from(parts[1], "base64").toString());
 
     return {
-      userId: payload.sub || payload.userId,
+      userId: payload.id || payload.sub || payload.userId,
       userRole: payload.role,
       email: payload.email,
       token,

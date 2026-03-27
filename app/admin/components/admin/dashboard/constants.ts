@@ -6,6 +6,7 @@ import {
   CreditCard,
   BarChart3,
   Settings,
+  CircleDollarSign,
 } from "lucide-react";
 
 export const NAV_ITEMS = [
@@ -28,6 +29,12 @@ export const NAV_ITEMS = [
     label: "Subscriptions",
     icon: CreditCard,
     dataKey: "salons",
+  },
+  {
+    value: "payments",
+    label: "Payment Verification",
+    icon: CircleDollarSign,
+    dataKey: null,
   },
   { value: "analytics", label: "Analytics", icon: BarChart3, dataKey: null },
   { value: "settings", label: "Settings", icon: Settings, dataKey: null },

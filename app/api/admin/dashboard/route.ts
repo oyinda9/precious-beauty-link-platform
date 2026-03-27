@@ -6,14 +6,38 @@ import { apiError } from "@/lib/api-utils";
 // GET super admin dashboard statistics
 export async function GET(request: NextRequest) {
   try {
-    const token = extractToken(request.headers.get("authorization"));
+    const authHeader = request.headers.get("authorization");
+    const token = extractToken(authHeader);
     if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      console.error("[Admin Dashboard] No token in Authorization header", {
+        authHeader,
+      });
+      return NextResponse.json(
+        { error: "Unauthorized - Missing token" },
+        { status: 401 },
+      );
     }
 
     const payload = verifyToken(token);
-    if (!payload || !isSuperAdmin(payload.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!payload) {
+      console.error("[Admin Dashboard] Invalid token");
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid token" },
+        { status: 401 },
+      );
+    }
+
+    if (!isSuperAdmin(payload.role)) {
+      console.error("[Admin Dashboard] User not super admin", {
+        role: payload.role,
+        userId: payload.id,
+      });
+      return NextResponse.json(
+        {
+          error: `Forbidden - Requires SUPER_ADMIN role. Current role: ${payload.role}`,
+        },
+        { status: 403 },
+      );
     }
 
     // Get counts
@@ -27,20 +51,30 @@ export async function GET(request: NextRequest) {
       where: { status: "COMPLETED" },
     });
 
+    // Get total revenue
+    const revenueData = await prisma.revenue.aggregate({
+      _sum: { amount: true },
+    });
+    const totalRevenue = revenueData._sum.amount || 0;
+
+    // Get pending approvals (pending payments)
+    const pendingApprovals = await prisma.subscription.count({
+      where: { status: "PENDING_PAYMENT" },
+    });
+
     // Get subscription breakdown
     const subscriptionStats = await prisma.salon.groupBy({
       by: ["subscriptionStatus"],
       _count: true,
     });
 
-    // Get recent bookings
-    // include full salon record to avoid TS "slug" select error
+    // Get recent bookings with proper client/user relationship
     const recentBookings = await prisma.booking.findMany({
       take: 10,
       orderBy: { createdAt: "desc" },
       include: {
-        salon: true,
-        client: { select: { id: true, fullName: true } },
+        salon: { select: { id: true, name: true, slug: true } },
+        client: { select: { fullName: true, email: true } },
         service: { select: { name: true, price: true } },
       },
     });
@@ -68,10 +102,9 @@ export async function GET(request: NextRequest) {
         });
         return {
           salonId: item.salonId,
-          salonName: salon?.name,
-          salonSlug: salon?.slug,
+          salonName: salon?.name || "Unknown",
           totalRevenue: item._sum.amount || 0,
-          totalBookings: salon?._count.bookings || 0,
+          bookingCount: salon?._count.bookings || 0,
         };
       }),
     );
@@ -136,6 +169,8 @@ export async function GET(request: NextRequest) {
         totalClients,
         totalBookings,
         completedBookings,
+        totalRevenue,
+        pendingApprovals,
       },
       subscriptionBreakdown: subscriptionStats,
       recentBookings,

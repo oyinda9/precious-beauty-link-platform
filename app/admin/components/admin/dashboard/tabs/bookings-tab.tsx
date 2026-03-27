@@ -59,7 +59,7 @@ export function BookingsTab({ data, salonFilter, setSalonFilter }: Props) {
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                   <div className="flex-1">
                     <p className="text-white font-semibold">
-                      {booking.client?.user?.fullName || "Unknown Client"}
+                      {booking.client?.fullName || "Unknown Client"}
                     </p>
                     <p className="text-purple-300 text-sm">{booking.salon?.name}</p>
                     <p className="text-purple-200 text-sm mt-2">
@@ -68,7 +68,7 @@ export function BookingsTab({ data, salonFilter, setSalonFilter }: Props) {
                   </div>
                   <div className="flex items-center gap-4 lg:ml-auto">
                     <div className="text-right">
-                      <p className="text-green-400 font-bold">₦{booking.totalPrice.toLocaleString()}</p>
+                      <p className="text-green-400 font-bold">₦{booking.totalPrice?.toLocaleString() || "0"}</p>
                       <p className="text-purple-300 text-xs">
                         {new Date(booking.bookingDate).toLocaleDateString()}
                       </p>

@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
+import PaymentProofUpload from "@/components/subscription/payment-proof-upload";
 
 type SubscriptionData = {
   planName: string;
@@ -96,6 +97,14 @@ export default function SettingsPage() {
 
   const [savingInfo, setSavingInfo] = useState(false);
   const [savingHours, setSavingHours] = useState(false);
+  const [showPaymentUpdate, setShowPaymentUpdate] = useState(false);
+  const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] =
+    useState<string>("MONNIFY");
+  const [showPaymentUpload, setShowPaymentUpload] = useState(false);
+  const [bankDetails, setBankDetails] = useState<any>(null);
+  const [authToken, setAuthToken] = useState<string>("");
 
   const normalizeBusinessHours = (
     hours?: Partial<BusinessHours> | null,
@@ -187,6 +196,45 @@ export default function SettingsPage() {
     loadAll();
   }, []);
 
+  // Load payment configuration and auth token
+  useEffect(() => {
+    if (showPaymentUpdate) {
+      const fetchPaymentConfig = async () => {
+        try {
+          // Get auth token
+          const authRes = await fetch("/api/auth/me", {
+            credentials: "include",
+          });
+          if (authRes.ok) {
+            const authData = await authRes.json();
+            setAuthToken(authData.token);
+          }
+
+          // Get payment config
+          const res = await fetch("/api/admin/payment-config", {
+            credentials: "include",
+            cache: "no-store",
+          });
+          if (res.ok) {
+            const data = await res.json();
+            setPaymentConfig(data);
+            // Set bank details for payment proof upload
+            setBankDetails({
+              accountName: data?.bankAccountName,
+              accountNumber: data?.bankAccountNumber,
+              bankName: data?.bankName,
+              bankCode: data?.bankCode,
+            });
+          }
+        } catch (error) {
+          console.error("Failed to load payment config:", error);
+          setPaymentConfig(null);
+        }
+      };
+      fetchPaymentConfig();
+    }
+  }, [showPaymentUpdate]);
+
   const saveBusinessInfo = async () => {
     setSavingInfo(true);
     setFormError("");
@@ -234,6 +282,68 @@ export default function SettingsPage() {
       );
     } finally {
       setSavingInfo(false);
+    }
+  };
+
+  const savePayment = async () => {
+    setSavingPayment(true);
+    setFormError("");
+    setFormMessage("");
+
+    try {
+      if (selectedPaymentMethod === "MONNIFY") {
+        // Initialize Monnify payment
+        const res = await fetch("/api/payments/monnify/initialize", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to initialize payment");
+        }
+
+        if (data?.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+        } else {
+          throw new Error("No checkout URL provided");
+        }
+      } else if (
+        selectedPaymentMethod === "BANK_TRANSFER" ||
+        selectedPaymentMethod === "CARD_PAYMENT"
+      ) {
+        // Update subscription with custom payment method
+        const res = await fetch("/api/salon-admin/subscription", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({
+            paymentMethod: selectedPaymentMethod,
+          }),
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to update payment method");
+        }
+
+        setFormMessage(
+          "Payment method updated. Your payment is marked as pending verification.",
+        );
+        setShowPaymentUpdate(false);
+        setSelectedPaymentMethod("MONNIFY");
+
+        // Reload subscription data
+        await loadSubscription();
+      }
+    } catch (error) {
+      setFormError(
+        error instanceof Error ? error.message : "Failed to process payment",
+      );
+      setSavingPayment(false);
     }
   };
 
@@ -553,10 +663,154 @@ export default function SettingsPage() {
                 <DialogClose asChild>
                   <Button variant="outline">Close</Button>
                 </DialogClose>
-                <Button className="bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600">
+                <Button
+                  onClick={() => setShowPaymentUpdate(true)}
+                  className="bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600"
+                >
                   Update Payment
                 </Button>
               </DialogFooter>
+
+              {/* Nested Payment Update Dialog */}
+              {showPaymentUpdate && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                  <Card className="w-full max-w-md bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 max-h-[90vh] overflow-y-auto">
+                    <CardHeader>
+                      <CardTitle>Update Payment Method</CardTitle>
+                      <CardDescription>
+                        Choose how you want to pay
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {/* Monnify Option */}
+                      <label className="block p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:border-blue-400 transition-all">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="MONNIFY"
+                          checked={selectedPaymentMethod === "MONNIFY"}
+                          onChange={(e) =>
+                            setSelectedPaymentMethod(e.target.value)
+                          }
+                          className="mr-3"
+                        />
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          Monnify Secure Checkout
+                        </span>
+                        {selectedPaymentMethod === "MONNIFY" && (
+                          <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded border border-slate-200 dark:border-slate-600 text-sm">
+                            <p className="text-slate-600 dark:text-slate-300">
+                              Pay securely with card or bank transfer via
+                              Monnify
+                            </p>
+                          </div>
+                        )}
+                      </label>
+
+                      {/* Bank Transfer Option */}
+                      {paymentConfig?.acceptBankTransfer && (
+                        <label className="block p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:border-emerald-400 transition-all">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="BANK_TRANSFER"
+                            checked={selectedPaymentMethod === "BANK_TRANSFER"}
+                            onChange={(e) =>
+                              setSelectedPaymentMethod(e.target.value)
+                            }
+                            className="mr-3"
+                          />
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            Bank Transfer
+                          </span>
+                          {selectedPaymentMethod === "BANK_TRANSFER" && (
+                            <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded border border-slate-200 dark:border-slate-600 text-sm">
+                              <p className="font-medium text-slate-800 dark:text-slate-200">
+                                {paymentConfig?.bankAccountName ||
+                                  process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME}
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-400">
+                                {paymentConfig?.bankName ||
+                                  process.env.NEXT_PUBLIC_BANK_NAME}{" "}
+                                •{" "}
+                                {(
+                                  paymentConfig?.bankAccountNumber ||
+                                  process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER
+                                )?.slice(-4)}
+                              </p>
+                              {paymentConfig?.paymentNote && (
+                                <p className="text-slate-600 dark:text-slate-400 mt-2 italic text-xs">
+                                  {paymentConfig.paymentNote}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </label>
+                      )}
+
+                      {/* Card Payment Option */}
+                      {paymentConfig?.acceptCardPayment && (
+                        <label className="block p-4 border-2 border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:border-purple-400 transition-all">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="CARD_PAYMENT"
+                            checked={selectedPaymentMethod === "CARD_PAYMENT"}
+                            onChange={(e) =>
+                              setSelectedPaymentMethod(e.target.value)
+                            }
+                            className="mr-3"
+                          />
+                          <span className="font-semibold text-slate-900 dark:text-white">
+                            Card Payment
+                          </span>
+                          {selectedPaymentMethod === "CARD_PAYMENT" && (
+                            <div className="mt-3 p-3 bg-slate-50 dark:bg-slate-700/50 rounded border border-slate-200 dark:border-slate-600 text-sm">
+                              <p className="font-medium text-slate-800 dark:text-slate-200">
+                                {paymentConfig?.cardHolderName}
+                              </p>
+                              <p className="text-slate-600 dark:text-slate-400">
+                                {paymentConfig?.cardBrand} • ••••{" "}
+                                {paymentConfig?.cardLastFour}
+                              </p>
+                              {paymentConfig?.paymentNote && (
+                                <p className="text-slate-600 dark:text-slate-400 mt-2 italic text-xs">
+                                  {paymentConfig.paymentNote}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </label>
+                      )}
+
+                      {formError && (
+                        <div className="p-3 rounded-md bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 text-sm">
+                          {formError}
+                        </div>
+                      )}
+                    </CardContent>
+                    <DialogFooter className="p-6 pt-0">
+                      <Button
+                        onClick={() => {
+                          setShowPaymentUpdate(false);
+                          setSelectedPaymentMethod("MONNIFY");
+                        }}
+                        variant="outline"
+                        disabled={savingPayment}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={savePayment}
+                        disabled={savingPayment || !selectedPaymentMethod}
+                        className="bg-slate-800 dark:bg-slate-700 text-white hover:bg-slate-700 dark:hover:bg-slate-600"
+                      >
+                        {savingPayment ? "Processing..." : "Continue"}
+                      </Button>
+                    </DialogFooter>
+                  </Card>
+                </div>
+              )}
             </DialogContent>
           </Dialog>
         </CardContent>

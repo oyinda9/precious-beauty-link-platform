@@ -353,21 +353,23 @@ export default function Home() {
                     Salon Dashboard
                   </span>
                 </div>
-                <div className="p-6">
-                  <div className="grid grid-cols-3 gap-4 mb-6">
-                    <div className="bg-purple-50 p-4 rounded-lg">
-                      <p className="text-sm text-purple-600 font-medium">
+                <div className="p-4 sm:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="bg-purple-50 p-3 sm:p-4 rounded-lg">
+                      <p className="text-xs sm:text-sm text-purple-600 font-medium">
                         Today's Bookings
                       </p>
-                      <p className="text-2xl font-bold text-slate-900">24</p>
+                      <p className="text-xl sm:text-2xl font-bold text-slate-900">
+                        24
+                      </p>
                     </div>
-                    <div className="bg-pink-50 p-4 rounded-lg">
+                    <div className="bg-pink-50 p-3 sm:p-4 rounded-lg">
                       <p className="text-sm text-pink-600 font-medium">
                         Revenue
                       </p>
                       <p className="text-2xl font-bold text-slate-900">₦124k</p>
                     </div>
-                    <div className="bg-blue-50 p-4 rounded-lg">
+                    <div className="bg-blue-50 p-3 sm:p-4 rounded-lg">
                       <p className="text-sm text-blue-600 font-medium">Staff</p>
                       <p className="text-2xl font-bold text-slate-900">8</p>
                     </div>
@@ -927,7 +929,9 @@ export default function Home() {
       {/* Simple Footer with just copyright */}
       <footer className="bg-slate-900 text-slate-400 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p className="text-sm">© 2025 Prevo Tech. All rights reserved.</p>
+          <p className="text-sm">
+            © 2026 Enpends Technologies Ltd. All rights reserved.
+          </p>
         </div>
       </footer>
 

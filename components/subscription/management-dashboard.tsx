@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertCircle,
-  TrendingUp,
-  Zap,
   Calendar,
-  AlertTriangle,
+  TrendingUp,
+  Crown,
+  ArrowUpRight,
+  Check,
 } from "lucide-react";
 
 interface SubscriptionStatus {
@@ -40,138 +40,121 @@ export function SubscriptionManagementDashboard({
 }: SubscriptionManagementProps) {
   const [isLoading, setIsLoading] = useState(false);
   const usagePercentage = (subscription.used / subscription.bookingLimit) * 100;
-  const shouldShowUpgradePrompt = usagePercentage >= 80;
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return "bg-green-900/30 border-green-500/30 text-green-300";
+        return (
+          <Badge className="bg-emerald-500/20 text-emerald-700 dark:text-emerald-100 border border-emerald-300 dark:border-emerald-500/30">
+            <Check className="w-3 h-3 mr-1" />
+            Active
+          </Badge>
+        );
       case "TRIAL":
-        return "bg-blue-900/30 border-blue-500/30 text-blue-300";
+        return (
+          <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-100 border border-blue-300 dark:border-blue-500/30">
+            Trial
+          </Badge>
+        );
       case "PAST_DUE":
-        return "bg-yellow-900/30 border-yellow-500/30 text-yellow-300";
-      case "CANCELLED":
-      case "SUSPENDED":
-        return "bg-red-900/30 border-red-500/30 text-red-300";
+        return (
+          <Badge className="bg-orange-500/20 text-orange-700 dark:text-orange-100 border border-orange-300 dark:border-orange-500/30">
+            Past Due
+          </Badge>
+        );
       default:
-        return "bg-purple-900/30 border-purple-500/30 text-purple-300";
+        return (
+          <Badge className="bg-slate-500/20 text-slate-700 dark:text-slate-100 border border-slate-300 dark:border-slate-500/30">
+            {status}
+          </Badge>
+        );
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Main Status Card */}
-      <Card className="p-6 bg-gradient-to-br from-purple-900/40 to-slate-900/50 border-purple-500/30">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          {/* Current Plan */}
-          <div>
-            <p className="text-sm text-purple-300 mb-1">Current Plan</p>
-            <p className="text-2xl font-bold text-white capitalize">
-              {subscription.plan}
-            </p>
+    <div className="space-y-4">
+      {/* Current Plan Card */}
+      <Card className="p-6 bg-linear-to-br from-purple-100 to-purple-50 border border-purple-200 dark:from-purple-600/10 dark:via-purple-600/5 dark:to-transparent dark:border-purple-500/20">
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-200 dark:bg-purple-500/20 rounded-lg">
+              <Crown className="w-5 h-5 text-purple-700 dark:text-purple-300" />
+            </div>
+            <div>
+              <p className="text-sm text-purple-600 dark:text-slate-200 font-medium">Current Plan</p>
+              <h3 className="text-2xl font-bold text-purple-900 dark:text-white capitalize">
+                {subscription.plan}
+              </h3>
+            </div>
           </div>
+          {getStatusBadge(subscription.status)}
+        </div>
+      </Card>
 
-          {/* Status */}
-          <div>
-            <p className="text-sm text-purple-300 mb-1">Status</p>
-            <Badge className={`${getStatusColor(subscription.status)}`}>
-              {subscription.status}
-            </Badge>
+      {/* Usage Card */}
+      <Card className="p-6 bg-linear-to-br from-slate-50 to-slate-100 border border-slate-200 dark:from-slate-900/40 dark:to-slate-900/20 dark:border-slate-700/30">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-300" />
+            <h4 className="font-semibold text-slate-900 dark:text-white">Booking Usage</h4>
           </div>
-
-          {/* Monthly Limit */}
-          <div>
-            <p className="text-sm text-purple-300 mb-1">Monthly Limit</p>
-            <p className="text-2xl font-bold text-white">
-              {subscription.bookingLimit === 999999
-                ? "∞"
-                : subscription.bookingLimit}
-            </p>
-          </div>
-
-          {/* Remaining */}
-          <div>
-            <p className="text-sm text-purple-300 mb-1">Remaining This Month</p>
-            <p className="text-2xl font-bold text-green-400">
-              {subscription.remaining}
-            </p>
-          </div>
+          <span className="text-sm font-medium text-slate-700 dark:text-slate-100">
+            {subscription.used} /{" "}
+            {subscription.bookingLimit === 999999
+              ? "Unlimited"
+              : subscription.bookingLimit}
+          </span>
         </div>
 
-        {/* Usage Progress Bar */}
-        <div className="mb-4">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm text-purple-300">Booking Usage</span>
-            <span className="text-sm font-bold text-white">
-              {subscription.used} /{" "}
-              {subscription.bookingLimit === 999999
-                ? "∞"
-                : subscription.bookingLimit}
-            </span>
-          </div>
-          <div className="w-full h-3 bg-slate-800/50 rounded-full overflow-hidden border border-purple-500/20">
+        {/* Usage Bar */}
+        <div className="mb-3">
+          <div className="w-full h-2 bg-slate-300 dark:bg-slate-800/60 rounded-full overflow-hidden border border-slate-400 dark:border-slate-700/50">
             <div
-              className={`h-full transition-all ${
+              className={`h-full transition-all rounded-full ${
                 usagePercentage >= 100
-                  ? "bg-red-500"
+                  ? "bg-linear-to-r from-red-500 to-red-600"
                   : usagePercentage >= 80
-                    ? "bg-yellow-500"
-                    : "bg-green-500"
+                    ? "bg-linear-to-r from-yellow-500 to-orange-500"
+                    : "bg-linear-to-r from-emerald-500 to-cyan-500"
               }`}
               style={{ width: `${Math.min(usagePercentage, 100)}%` }}
             />
           </div>
         </div>
 
-        {/* Renewal Info */}
-        {subscription.renewalDate && (
-          <div className="flex items-center gap-2 text-sm text-purple-300 mt-4">
-            <Calendar className="w-4 h-4" />
-            <span>
-              Renews on{" "}
-              {new Date(subscription.renewalDate).toLocaleDateString()}
-            </span>
-          </div>
-        )}
+        {/* Remaining Info */}
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-slate-600 dark:text-slate-200 font-medium">Remaining this month</span>
+          <span
+            className={`font-bold text-xl ${
+              subscription.remaining > 0
+                ? "text-lime-700 dark:text-lime-300"
+                : "text-red-700 dark:text-red-200"
+            }`}
+          >
+            {subscription.remaining}
+          </span>
+        </div>
       </Card>
 
-      {/* Upgrade Prompt */}
-      {shouldShowUpgradePrompt && subscription.bookingLimit !== 999999 && (
-        <Card className="p-4 bg-yellow-900/20 border-yellow-500/30">
-          <div className="flex gap-4">
-            <AlertTriangle className="w-5 h-5 text-yellow-400 flex-shrink-0" />
-            <div className="flex-1">
-              <h4 className="font-bold text-yellow-300 mb-1">
-                You're Approaching Your Booking Limit
-              </h4>
-              <p className="text-sm text-yellow-200 mb-3">
-                {subscription.remaining} bookings remaining this month. Upgrade
-                your plan to accept more bookings.
-              </p>
-              <Button
-                onClick={() => onUpgrade?.(subscription.plan)}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white text-sm"
-              >
-                <TrendingUp className="w-4 h-4 mr-2" />
-                View Upgrade Options
-              </Button>
+      {/* Renewal Card */}
+      {subscription.renewalDate && (
+        <Card className="p-6 bg-linear-to-br from-slate-50 to-slate-100 border border-slate-200 dark:from-slate-900/40 dark:to-slate-900/20 dark:border-slate-700/30">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-cyan-200 dark:bg-cyan-500/20 rounded-lg">
+              <Calendar className="w-5 h-5 text-cyan-700 dark:text-cyan-300" />
             </div>
-          </div>
-        </Card>
-      )}
-
-      {/* Quota Reached Alert */}
-      {subscription.quotaReached && (
-        <Card className="p-4 bg-red-900/20 border-red-500/30">
-          <div className="flex gap-4">
-            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0" />
             <div className="flex-1">
-              <h4 className="font-bold text-red-300 mb-1">
-                Booking Limit Reached
-              </h4>
-              <p className="text-sm text-red-200">
-                You've reached your monthly booking limit. Upgrade to start
-                accepting more bookings.
+              <p className="text-sm text-slate-600 dark:text-slate-200 font-medium">Next Renewal</p>
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">
+                {new Date(subscription.renewalDate).toLocaleDateString(
+                  "en-NG",
+                  {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  },
+                )}
               </p>
             </div>
           </div>
@@ -179,59 +162,36 @@ export function SubscriptionManagementDashboard({
       )}
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        {/* Upgrade Button */}
-        <Button
-          onClick={() => onUpgrade?.(subscription.plan)}
-          className="bg-purple-600 hover:bg-purple-700 text-white font-semibold"
-        >
-          <Zap className="w-4 h-4 mr-2" />
-          Upgrade Plan
-        </Button>
-
-        {/* Downgrade Button (if not on Free or Starter) */}
-        {!["FREE", "STARTER"].includes(subscription.plan) && (
+      <div className="grid grid-cols-2 gap-3 pt-2">
+        {subscription.plan !== "PREMIUM" && (
           <Button
-            onClick={() => onDowngrade?.(subscription.plan)}
+            onClick={() => onUpgrade?.("PREMIUM")}
+            disabled={isLoading}
+            className="bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 font-medium"
+          >
+            <ArrowUpRight className="w-4 h-4 mr-2" />
+            Upgrade
+          </Button>
+        )}
+        {subscription.plan !== "FREE" && (
+          <Button
+            onClick={() => onDowngrade?.("STARTER")}
+            disabled={isLoading}
             variant="outline"
-            className="border-purple-500/30 text-purple-300 hover:bg-purple-500/10"
+            className="border-slate-300 dark:border-slate-500 text-slate-700 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800/70 font-medium"
           >
             Downgrade
           </Button>
         )}
-
-        {/* Cancel Button */}
         <Button
-          onClick={() => {
-            if (
-              confirm(
-                "Are you sure you want to cancel? Your salon will be downgraded to the Free plan.",
-              )
-            ) {
-              onCancel?.();
-            }
-          }}
+          onClick={onCancel}
+          disabled={isLoading}
           variant="outline"
-          className="border-red-500/30 text-red-300 hover:bg-red-500/10"
+          className="border-red-300 dark:border-red-500 text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-950/50 hover:text-red-800 dark:hover:text-red-100 font-medium"
         >
-          Cancel Subscription
+          Cancel Plan
         </Button>
       </div>
-
-      {/* Plan Features */}
-      <Card className="p-6 bg-slate-900/50 border-purple-500/30">
-        <h3 className="font-bold text-white mb-4">Current Plan Features</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-purple-300">
-          <div>✓ Basic booking system</div>
-          {subscription.used <= subscription.bookingLimit && (
-            <div>✓ Unlimited staff members</div>
-          )}
-          {subscription.status === "ACTIVE" && (
-            <div>✓ Full access to features</div>
-          )}
-          <div>✓ Customer management</div>
-        </div>
-      </Card>
     </div>
   );
 }

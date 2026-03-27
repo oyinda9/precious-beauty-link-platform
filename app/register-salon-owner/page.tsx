@@ -22,6 +22,7 @@ import {
   Building2,
 } from "lucide-react";
 import { NIGERIAN_STATES } from "@/lib/constants/nigerian-states";
+import { getBankDetails } from "@/lib/bank-details";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,11 +34,13 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import PaymentProofUpload from "@/components/subscription/payment-proof-upload";
 
 interface FormData {
   fullName: string;
   email: string;
   password: string;
+  confirmPassword: string;
   phone: string;
   salonName: string;
   salonSlug: string;
@@ -97,15 +100,30 @@ export default function RegisterSalonOwnerPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [paymentConfig, setPaymentConfig] = useState<any>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "MONNIFY" | "BANK_TRANSFER" | "CARD_PAYMENT" | "CUSTOM_GATEWAY"
+  >("MONNIFY");
+  const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
+  const [loadingPaymentConfig, setLoadingPaymentConfig] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanKey | "">("");
   const [slugChecking, setSlugChecking] = useState(false);
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null);
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
+  // Payment upload flow states
+  const [showPaymentUpload, setShowPaymentUpload] = useState(false);
+  const [bankDetails, setBankDetails] = useState<any>(null);
+  const [subscriptionId, setSubscriptionId] = useState("");
+  const [currentSalonId, setCurrentSalonId] = useState("");
+  const [authToken, setAuthToken] = useState("");
+
   const [formData, setFormData] = useState<FormData>({
     fullName: "",
     email: "",
     password: "",
+    confirmPassword: "",
     phone: "",
     salonName: "",
     salonSlug: "",
@@ -118,12 +136,48 @@ export default function RegisterSalonOwnerPage() {
 
   const [hasRegistered, setHasRegistered] = useState(false);
 
+  // Password validation
+  const passwordsMatch =
+    formData.password && formData.confirmPassword === formData.password;
+  const passwordsEmpty = !formData.password || !formData.confirmPassword;
+  const passwordMismatch =
+    formData.password && formData.confirmPassword && !passwordsMatch;
+  const passwordValid = formData.password.length >= 8;
+
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", handleMouseMove);
     return () => window.removeEventListener("mousemove", handleMouseMove);
+  }, []);
+
+  // Fetch custom payment configuration
+  useEffect(() => {
+    const fetchPaymentConfig = async () => {
+      setLoadingPaymentConfig(true);
+      try {
+        const res: Response = await fetch("/api/admin/payment-config");
+        if (res.ok) {
+          const data = await res.json();
+          setPaymentConfig(data);
+          // Default to bank transfer if available, otherwise Monnify
+          if (data?.acceptBankTransfer) {
+            setSelectedPaymentMethod("BANK_TRANSFER");
+          }
+        } else {
+          const errorData = await res.json().catch(() => ({}));
+          console.error("Failed to fetch payment config:", errorData);
+          setPaymentConfig(null);
+        }
+      } catch (err) {
+        console.error("Failed to load payment config:", err);
+        setPaymentConfig(null);
+      } finally {
+        setLoadingPaymentConfig(false);
+      }
+    };
+    fetchPaymentConfig();
   }, []);
 
   const generateSlug = (name: string) =>
@@ -157,7 +211,13 @@ export default function RegisterSalonOwnerPage() {
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >,
   ) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+
+    // Filter phone inputs to only allow digits, +, -, and spaces
+    if (name === "phone" || name === "salonPhone") {
+      value = value.replace(/[^\d+\- ]/g, "");
+    }
+
     setFormData((prev) => ({ ...prev, [name]: value }));
     setError("");
   };
@@ -188,6 +248,10 @@ export default function RegisterSalonOwnerPage() {
     }
     if (formData.password.length < 8) {
       setError("Password must be at least 8 characters");
+      return false;
+    }
+    if (passwordMismatch) {
+      setError("Passwords do not match");
       return false;
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -249,7 +313,7 @@ export default function RegisterSalonOwnerPage() {
     }
   };
 
-  // Register account + process Monnify payment
+  // Register account + process payment (Monnify or custom methods)
   const handleRegisterAndActivate = async (planKey: PlanKey) => {
     setLoading(true);
     setError("");
@@ -257,7 +321,7 @@ export default function RegisterSalonOwnerPage() {
     try {
       // Register only once
       if (!hasRegistered) {
-        const regRes = await fetch("/api/auth/register", {
+        const regRes: Response = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -287,7 +351,7 @@ export default function RegisterSalonOwnerPage() {
       }
 
       // login for auth cookie
-      const loginRes = await fetch("/api/auth/login", {
+      const loginRes: Response = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -303,23 +367,80 @@ export default function RegisterSalonOwnerPage() {
       }
 
       // ✅ get token from login response (if cookie is not set)
-      const authToken =
+      const token =
         loginData?.token ||
         loginData?.accessToken ||
         loginData?.data?.token ||
         "";
 
+      setAuthToken(token);
+
       if (planKey === "FREE") {
-        setSuccess("Registration successful! Redirecting...");
-        setTimeout(() => router.push("/salon-admin/dashboard"), 1200);
+        setSuccess("Registration successful! Redirecting to login...");
+        setTimeout(() => router.push("/login"), 1200);
         return;
       }
 
-      const payRes = await fetch("/api/payments/monnify/initialize", {
+      // Handle custom payment methods (Bank Transfer, Card, or Custom Gateway)
+      if (
+        selectedPaymentMethod === "BANK_TRANSFER" ||
+        selectedPaymentMethod === "CARD_PAYMENT" ||
+        selectedPaymentMethod === "CUSTOM_GATEWAY"
+      ) {
+        // Find salon ID from registration response or use email-based lookup
+        const salonRes: Response | null = await fetch(
+          `/api/salons/by-owner?owner=${encodeURIComponent(formData.email)}`,
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          },
+        ).catch(() => null);
+
+        let salonId = "";
+        if (salonRes?.ok) {
+          const salonData = await salonRes.json().catch(() => ({}));
+          salonId = salonData?.id || "";
+        }
+
+        if (!salonId) {
+          throw new Error("Failed to get salon ID. Please try again.");
+        }
+
+        // Initialize subscription with custom payment method
+        const subRes: Response = await fetch("/api/subscriptions/initialize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            salonId,
+            planKey,
+            paymentMethod: selectedPaymentMethod,
+          }),
+        });
+
+        const subData = await subRes.json();
+        if (!subRes.ok) {
+          throw new Error(
+            subData?.error || "Subscription initialization failed",
+          );
+        }
+
+        // Store data and show payment upload component instead of redirecting
+        setSubscriptionId(subData.subscription?.id || "");
+        setCurrentSalonId(salonId);
+        setBankDetails(subData.bankDetails);
+        setShowPaymentUpload(true);
+        setLoading(false);
+        return;
+      }
+
+      // Handle Monnify (default for paid plans) - redirect immediately without extra UI
+      const payRes: Response = await fetch("/api/payments/monnify/initialize", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         credentials: "include",
         body: JSON.stringify({
@@ -337,11 +458,12 @@ export default function RegisterSalonOwnerPage() {
         throw new Error("Missing Monnify checkout URL");
       }
 
+      // Redirect to Monnify immediately without clearing loading state
+      // The page navigation will happen before loading state changes
       window.location.href = payData.redirectUrl;
-      return; // ✅ prevent falling through
+      return;
     } catch (err: any) {
       setError(err?.message || "Something went wrong");
-    } finally {
       setLoading(false);
     }
   };
@@ -358,13 +480,13 @@ export default function RegisterSalonOwnerPage() {
   const selectedPlanInfo = PLANS.find((p) => p.key === selectedPlan);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Balls Background - Pure Tailwind */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute w-96 h-96 bg-purple-300/30 rounded-full blur-3xl animate-[blob_7s_infinite] top-0 -left-20"></div>
-        <div className="absolute w-96 h-96 bg-pink-300/30 rounded-full blur-3xl animate-[blob_7s_infinite_2s] top-1/2 -right-20"></div>
-        <div className="absolute w-96 h-96 bg-purple-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_4s] bottom-0 left-1/3"></div>
-        <div className="absolute w-80 h-80 bg-pink-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_1s] top-20 right-1/4"></div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-purple-100 flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+      {/* Animated Balls Background - Pure Tailwind - Hidden on mobile */}
+      <div className="absolute inset-0 overflow-hidden hidden sm:block">
+        <div className="absolute w-48 h-48 sm:w-96 sm:h-96 bg-purple-300/30 rounded-full blur-3xl animate-[blob_7s_infinite] top-0 -left-20"></div>
+        <div className="absolute w-48 h-48 sm:w-96 sm:h-96 bg-pink-300/30 rounded-full blur-3xl animate-[blob_7s_infinite_2s] top-1/2 -right-20"></div>
+        <div className="absolute w-48 h-48 sm:w-96 sm:h-96 bg-purple-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_4s] bottom-0 left-1/3"></div>
+        <div className="absolute w-40 h-40 sm:w-80 sm:h-80 bg-pink-400/20 rounded-full blur-3xl animate-[blob_7s_infinite_1s] top-20 right-1/4"></div>
 
         {/* Floating small balls */}
         <div className="absolute w-16 h-16 bg-purple-400/30 rounded-full animate-[float-slow_8s_ease-in-out_infinite] top-1/4 left-1/4"></div>
@@ -375,9 +497,9 @@ export default function RegisterSalonOwnerPage() {
         <div className="absolute w-16 h-16 bg-pink-300/30 rounded-full animate-[float-fast_4s_ease-in-out_infinite] top-4/5 right-1/4"></div>
       </div>
 
-      {/* Interactive ball that follows mouse */}
+      {/* Interactive ball that follows mouse - Hidden on mobile */}
       <div
-        className="absolute w-40 h-40 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-xl opacity-20 transition-all duration-300 ease-out pointer-events-none"
+        className="absolute w-40 h-40 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur-xl opacity-20 transition-all duration-300 ease-out pointer-events-none hidden sm:block"
         style={{
           transform: `translate(${mousePosition.x - 80}px, ${mousePosition.y - 80}px)`,
         }}
@@ -396,9 +518,9 @@ export default function RegisterSalonOwnerPage() {
         </div>
       </div>
 
-      <div className="w-full max-w-2xl relative z-10">
+      <div className="w-full max-w-2xl relative z-10 px-2 sm:px-0">
         {/* Progress Steps - Desktop */}
-        <div className="hidden lg:flex items-center justify-center gap-4 mb-8">
+        <div className="hidden lg:flex items-center justify-center gap-2 lg:gap-4 mb-6 lg:mb-8">
           {[
             { label: "Account Details", key: "account" },
             { label: "Salon Setup", key: "salon" },
@@ -437,10 +559,9 @@ export default function RegisterSalonOwnerPage() {
 
         {/* Main Card */}
         <Card className="bg-white/90 backdrop-blur-xl border-2 border-white/50 shadow-2xl relative overflow-hidden">
-          {/* Card Decoration */}
-          <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl -mr-20 -mt-20"></div>
-          <div className="absolute bottom-0 left-0 w-40 h-40 bg-gradient-to-tr from-pink-200/30 to-purple-200/30 rounded-full blur-3xl -ml-20 -mb-20"></div>
-
+          {/* Card Decoration - Hidden on mobile */}
+          <div className="absolute top-0 right-0 w-20 h-20 sm:w-40 sm:h-40 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-2xl sm:blur-3xl -mr-10 sm:-mr-20 -mt-10 sm:-mt-20 hidden sm:block"></div>
+          <div className="absolute bottom-0 left-0 w-20 h-20 sm:w-40 sm:h-40 bg-gradient-to-tr from-pink-200/30 to-purple-200/30 rounded-full blur-2xl sm:blur-3xl -ml-10 sm:-ml-20 -mb-10 sm:-mb-20 hidden sm:block"></div>
           <CardHeader className="text-center relative">
             {/* Logo */}
             <div className="flex justify-center mb-6">
@@ -568,6 +689,64 @@ export default function RegisterSalonOwnerPage() {
                     </button>
                   </div>
                   <p className="text-xs text-gray-500">Minimum 8 characters</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Confirm Password <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <Input
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                      className={`pl-10 pr-10 h-12 border-2 rounded-xl transition-all ${
+                        passwordMismatch
+                          ? "border-red-500 focus:border-red-600 focus:ring-red-600"
+                          : "border-gray-200 focus:border-purple-600 focus:ring-purple-600"
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={20} />
+                      ) : (
+                        <Eye size={20} />
+                      )}
+                    </button>
+                  </div>
+                  {!passwordsEmpty && (
+                    <div className="flex items-center gap-2">
+                      {passwordsMatch ? (
+                        <>
+                          <CheckCircle2 size={16} className="text-green-500" />
+                          <p className="text-xs text-green-600">
+                            Passwords match ✓
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <AlertCircle size={16} className="text-red-500" />
+                          <p className="text-xs text-red-600">
+                            Passwords do not match
+                          </p>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-2">
@@ -824,11 +1003,11 @@ export default function RegisterSalonOwnerPage() {
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {PLANS.map((plan) => (
                     <label
                       key={plan.key}
-                      className={`relative border-2 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:shadow-lg ${
+                      className={`relative border-2 rounded-lg sm:rounded-xl p-3 sm:p-4 cursor-pointer transition-all duration-300 hover:shadow-lg ${
                         selectedPlan === plan.key
                           ? "border-purple-600 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md"
                           : "border-gray-200 bg-white hover:border-purple-300"
@@ -913,69 +1092,292 @@ export default function RegisterSalonOwnerPage() {
               </div>
             )}
 
-            {/* Payment Step — Monnify hosted checkout */}
+            {/* Payment Step — Choose payment method */}
             {step === "payment" && (
-              <form onSubmit={handlePaymentSubmit} className="space-y-5">
-                {error && (
-                  <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
-                    <AlertCircle
-                      className="text-red-500 mt-0.5 shrink-0"
-                      size={18}
+              <>
+                {/* Show Payment Upload Component */}
+                {showPaymentUpload && bankDetails && (
+                  <div className="space-y-5">
+                    <PaymentProofUpload
+                      subscriptionId={subscriptionId}
+                      salonId={currentSalonId}
+                      bankDetails={bankDetails}
+                      paymentMethod={
+                        selectedPaymentMethod as
+                          | "BANK_TRANSFER"
+                          | "CARD_PAYMENT"
+                          | "CUSTOM_GATEWAY"
+                      }
+                      token={authToken}
+                      onSuccess={() => {
+                        setTimeout(() => router.push("/login"), 2000);
+                      }}
                     />
-                    <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
 
-                <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between">
-                  <div>
-                    <p className="font-semibold text-purple-700">
-                      {selectedPlanInfo?.name} Plan
-                    </p>
-                    <p className="text-sm text-purple-500">
-                      {selectedPlanInfo?.desc}
-                    </p>
-                  </div>
-                  <span className="text-xl font-bold text-purple-700">
-                    {selectedPlanInfo?.price}
-                  </span>
-                </div>
-
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-                  Payment is completed on{" "}
-                  <strong>Monnify secure checkout</strong>. Click continue to
-                  proceed.
-                </div>
-
-                <div className="flex gap-3 pt-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="flex-1 h-12 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600 rounded-xl transition-all"
-                    onClick={() => setStep("plan")}
-                    disabled={loading}
-                  >
-                    <ChevronLeft className="mr-2 w-4 h-4" /> Back
-                  </Button>
-
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="mr-2 w-4 h-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        Continue to Monnify
-                        <ChevronRight className="ml-2 w-4 h-4" />
-                      </>
+                {/* Show Payment Method Selection Form */}
+                {!showPaymentUpload && (
+                  <form onSubmit={handlePaymentSubmit} className="space-y-5">
+                    {error && (
+                      <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
+                        <AlertCircle
+                          className="text-red-500 mt-0.5 shrink-0"
+                          size={18}
+                        />
+                        <p className="text-sm text-red-600">{error}</p>
+                      </div>
                     )}
-                  </Button>
-                </div>
-              </form>
+
+                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-purple-700">
+                          {selectedPlanInfo?.name} Plan
+                        </p>
+                        <p className="text-sm text-purple-500">
+                          {selectedPlanInfo?.desc}
+                        </p>
+                      </div>
+                      <span className="text-xl font-bold text-purple-700">
+                        {selectedPlanInfo?.price}
+                      </span>
+                    </div>
+
+                    {/* Payment Method Selection */}
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium text-gray-700">
+                        Select Payment Method{" "}
+                        <span className="text-red-500">*</span>
+                      </Label>
+
+                      {/* Bank Transfer Option */}
+                      {(paymentConfig?.acceptBankTransfer ||
+                        process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME) && (
+                        <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 transition-all">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="BANK_TRANSFER"
+                            checked={selectedPaymentMethod === "BANK_TRANSFER"}
+                            onChange={(e) =>
+                              setSelectedPaymentMethod(
+                                e.target.value as "BANK_TRANSFER",
+                              )
+                            }
+                            className="mr-3"
+                          />
+                          <span className="font-semibold text-gray-700">
+                            Bank Transfer
+                          </span>
+                          {selectedPaymentMethod === "BANK_TRANSFER" && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 text-sm">
+                              <p className="font-medium text-gray-800">
+                                {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ||
+                                  paymentConfig?.bankAccountName}
+                              </p>
+                              <p className="text-gray-600">
+                                {process.env.NEXT_PUBLIC_BANK_NAME ||
+                                  paymentConfig?.bankName}{" "}
+                                •{" "}
+                                {(
+                                  process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ||
+                                  paymentConfig?.bankAccountNumber
+                                )?.slice(-4)}
+                              </p>
+                              <p className="text-gray-500 mt-2 text-xs">
+                                Amount: ₦
+                                {selectedPlanInfo?.amount.toLocaleString()}
+                              </p>
+                              {paymentConfig?.paymentNote && (
+                                <p className="text-purple-600 mt-2 italic">
+                                  {paymentConfig.paymentNote}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </label>
+                      )}
+
+                      {/* Card Payment Option */}
+                      {paymentConfig?.acceptCardPayment && (
+                        <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-300 transition-all">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="CARD_PAYMENT"
+                            checked={selectedPaymentMethod === "CARD_PAYMENT"}
+                            onChange={(e) =>
+                              setSelectedPaymentMethod(
+                                e.target.value as "CARD_PAYMENT",
+                              )
+                            }
+                            className="mr-3"
+                          />
+                          <span className="font-semibold text-gray-700">
+                            Card Payment
+                          </span>
+                          {selectedPaymentMethod === "CARD_PAYMENT" && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 text-sm">
+                              <p className="font-medium text-gray-800">
+                                {paymentConfig.cardHolderName}
+                              </p>
+                              <p className="text-gray-600">
+                                {paymentConfig.cardBrand} • ••••{" "}
+                                {paymentConfig.cardLastFour}
+                              </p>
+                              <p className="text-gray-500 mt-2 text-xs">
+                                Amount: ₦
+                                {selectedPlanInfo?.amount.toLocaleString()}
+                              </p>
+                              {paymentConfig.paymentNote && (
+                                <p className="text-purple-600 mt-2 italic">
+                                  {paymentConfig.paymentNote}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </label>
+                      )}
+
+                      {/* Custom Gateway Option - Always Available */}
+                      {/* {(process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ||
+                        paymentConfig?.bankAccountName) && (
+                        <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-300 transition-all">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="CUSTOM_GATEWAY"
+                            checked={selectedPaymentMethod === "CUSTOM_GATEWAY"}
+                            onChange={(e) =>
+                              setSelectedPaymentMethod(
+                                e.target.value as "CUSTOM_GATEWAY",
+                              )
+                            }
+                            className="mr-3"
+                          />
+                          <span className="font-semibold text-gray-700">
+                            Our Payment Gateway
+                          </span>
+                          {selectedPaymentMethod === "CUSTOM_GATEWAY" && (
+                            <div className="mt-3 p-3 bg-gray-50 rounded border border-gray-200 text-sm">
+                              <p className="font-medium text-gray-800">
+                                {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ||
+                                  paymentConfig?.bankAccountName}
+                              </p>
+                              <p className="text-gray-600 font-mono">
+                                {process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER ||
+                                  paymentConfig?.bankAccountNumber}
+                              </p>
+                              <p className="text-gray-500 mt-2 text-xs">
+                                {process.env.NEXT_PUBLIC_BANK_NAME ||
+                                  paymentConfig?.bankName}
+                              </p>
+                              <p className="text-gray-500 mt-2 text-xs">
+                                Amount: ₦
+                                {selectedPlanInfo?.amount.toLocaleString()}
+                              </p>
+                              {paymentConfig?.paymentNote && (
+                                <p className="text-purple-600 mt-2 italic">
+                                  {paymentConfig.paymentNote}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </label>
+                      )} */}
+
+                      {/* Monnify Option (Always Available) */}
+                      <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="MONNIFY"
+                          checked={selectedPaymentMethod === "MONNIFY"}
+                          onChange={(e) =>
+                            setSelectedPaymentMethod(
+                              e.target.value as "MONNIFY",
+                            )
+                          }
+                          className="mr-3"
+                        />
+                        <span className="font-semibold text-gray-700">
+                          Monnify Secure Checkout
+                        </span>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Secure payment gateway for card and account transfers
+                        </p>
+                      </label>
+                    </div>
+
+                    {/* Payment Instructions */}
+                    {(selectedPaymentMethod === "BANK_TRANSFER" ||
+                      selectedPaymentMethod === "CARD_PAYMENT" ||
+                      selectedPaymentMethod === "CUSTOM_GATEWAY") && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+                        <p className="font-semibold mb-2">📋 Next Steps:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          <li>
+                            Complete{" "}
+                            {selectedPaymentMethod === "BANK_TRANSFER"
+                              ? "the bank transfer"
+                              : selectedPaymentMethod === "CUSTOM_GATEWAY"
+                                ? "the payment gateway transfer"
+                                : "the card payment"}
+                          </li>
+                          <li>Upload payment proof (screenshot/receipt)</li>
+                          <li>Admin will verify within 24 hours</li>
+                          <li>
+                            Your plan will be activated after verification
+                          </li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {selectedPaymentMethod === "MONNIFY" && (
+                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
+                        Payment is completed on{" "}
+                        <strong>Monnify secure checkout</strong>. Click continue
+                        to proceed.
+                      </div>
+                    )}
+
+                    <div className="flex gap-3 pt-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 h-12 border-2 border-gray-200 hover:border-purple-600 hover:text-purple-600 rounded-xl transition-all"
+                        onClick={() => setStep("plan")}
+                        disabled={loading}
+                      >
+                        <ChevronLeft className="mr-2 w-4 h-4" /> Back
+                      </Button>
+
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="flex-1 h-12 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl shadow-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="mr-2 w-4 h-4 animate-spin" />
+                            Processing...
+                          </>
+                        ) : selectedPaymentMethod === "MONNIFY" ? (
+                          <>
+                            Continue to Monnify
+                            <ChevronRight className="ml-2 w-4 h-4" />
+                          </>
+                        ) : (
+                          <>
+                            Complete Registration
+                            <ChevronRight className="ml-2 w-4 h-4" />
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -1016,7 +1418,15 @@ export default function RegisterSalonOwnerPage() {
                 Processing Payment
               </h3>
               <p className="text-sm text-gray-600">
-                Please wait while we redirect you to Monnify secure checkout...
+                {selectedPaymentMethod === "MONNIFY"
+                  ? "Please wait while we redirect you to Monnify secure checkout..."
+                  : selectedPaymentMethod === "BANK_TRANSFER"
+                    ? "Processing your bank transfer. You will receive bank details shortly..."
+                    : selectedPaymentMethod === "CARD_PAYMENT"
+                      ? "Processing your card payment. Redirecting to secure payment page..."
+                      : selectedPaymentMethod === "CUSTOM_GATEWAY"
+                        ? "Processing your payment. You will receive payment instructions..."
+                        : "Processing your payment..."}
               </p>
             </div>
           </div>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { getBankDetails } from "@/lib/bank-details";
 import {
   ArrowRight,
   Calendar,
@@ -43,6 +44,16 @@ interface ClientBooking {
     slug: string;
     address: string;
     city: string;
+  };
+  staff?: {
+    id: string;
+    user: {
+      id: string;
+      fullName: string;
+      email: string;
+      phone: string | null;
+    };
+    specialties: string[];
   };
 }
 
@@ -99,6 +110,7 @@ export default function ClientBookingsPage() {
             address: b.salon?.address ?? "",
             city: b.salon?.city ?? "",
           },
+          staff: b.staff ?? undefined,
         }));
 
         setBookings(normalized);
@@ -153,6 +165,41 @@ export default function ClientBookingsPage() {
     const ampm = hour >= 12 ? "PM" : "AM";
     const hour12 = hour % 12 || 12;
     return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  // Payment Info Display Component
+  const PaymentInfoDisplay = () => {
+    const bankDetails = getBankDetails();
+    if (!bankDetails.accountName) return null;
+
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
+        <div className="flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-blue-700 font-medium">
+            Transfer payment within 2 hours to confirm your booking
+          </p>
+        </div>
+        <div className="bg-white rounded p-2 text-xs space-y-1">
+          <div className="flex justify-between">
+            <span className="text-gray-600">Account Name:</span>
+            <span className="font-mono font-medium">
+              {bankDetails.accountName}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Account Number:</span>
+            <span className="font-mono font-medium">
+              {bankDetails.accountNumber}
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-gray-600">Bank:</span>
+            <span className="font-medium">{bankDetails.bankName}</span>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const filteredBookings =
@@ -404,6 +451,30 @@ export default function ClientBookingsPage() {
                             </div>
                           </div>
 
+                          {/* Staff */}
+                          {booking.staff && (
+                            <div className="bg-purple-50 rounded-lg p-3">
+                              <p className="text-xs font-medium text-gray-500 uppercase mb-2">
+                                Assigned Staff
+                              </p>
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 bg-purple-200 rounded-full flex items-center justify-center">
+                                  <Scissors className="w-4 h-4 text-purple-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {booking.staff.user.fullName}
+                                  </p>
+                                  {booking.staff.specialties.length > 0 && (
+                                    <p className="text-xs text-gray-600 truncate">
+                                      {booking.staff.specialties.join(", ")}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Services */}
                           <div className="space-y-2">
                             <p className="text-xs font-medium text-gray-500 uppercase">
@@ -463,6 +534,11 @@ export default function ClientBookingsPage() {
                             <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic">
                               "{booking.notes}"
                             </div>
+                          )}
+
+                          {/* Payment Info for Pending */}
+                          {booking.status === "PENDING" && (
+                            <PaymentInfoDisplay />
                           )}
 
                           {/* Footer */}
@@ -581,6 +657,28 @@ export default function ClientBookingsPage() {
                             </div>
                           </div>
 
+                          {/* Staff Information */}
+                          {booking.staff && (
+                            <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                              <p className="text-xs font-medium text-gray-500 uppercase mb-2">
+                                Assigned Staff
+                              </p>
+                              <div className="flex items-center gap-3">
+                                <Scissors className="w-5 h-5 text-purple-600" />
+                                <div>
+                                  <p className="font-semibold text-gray-900">
+                                    {booking.staff.user.fullName}
+                                  </p>
+                                  {booking.staff.specialties.length > 0 && (
+                                    <p className="text-sm text-purple-600">
+                                      {booking.staff.specialties.join(", ")}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Services Grid */}
                           <div className="pt-2">
                             <p className="text-sm font-medium text-gray-600 mb-3">
@@ -616,6 +714,11 @@ export default function ClientBookingsPage() {
                             <div className="bg-gray-50 rounded-lg p-3 text-sm text-gray-600 italic border border-gray-200 mt-3">
                               "{booking.notes}"
                             </div>
+                          )}
+
+                          {/* Payment Info for Pending */}
+                          {booking.status === "PENDING" && (
+                            <PaymentInfoDisplay />
                           )}
                         </div>
                       </div>

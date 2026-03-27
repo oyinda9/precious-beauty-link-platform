@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { BookingStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { verifyToken, extractToken } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
       startTime,
       notes,
       clientPhone,
+      paymentMethod,
       // Ignore any client-provided status fields
       status: _ignoredStatus,
       paymentStatus: _ignoredPaymentStatus,
@@ -81,13 +83,14 @@ export async function POST(req: NextRequest) {
 
     const booking = await prisma.booking.create({
       data: {
-        salon: { connect: { id: salonId } },
-        service: { connect: { id: serviceIds[0] } },
+        salonId,
+        serviceId: serviceIds[0],
         bookingDate: new Date(bookingDate),
         startTime,
         endTime: calculateEndTime(startTime, totalDuration),
         clientPhone: clientPhone.trim(),
         notes: notes || null,
+        paymentMethod: paymentMethod || "PAY_AT_SALON",
 
         // Force initial states
         status: BookingStatus.PENDING,
@@ -137,28 +140,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Extract token and decode to get user info
-    const token = authHeader.replace("Bearer ", "");
-    let userRole: string = "";
-    let userId: string = "";
-
-    try {
-      // Parse JWT token (simplified - in production use proper JWT verification)
-      const payload = JSON.parse(
-        Buffer.from(token.split(".")[1], "base64").toString(),
+    // Extract and verify token
+    const token = extractToken(authHeader);
+    if (!token) {
+      return NextResponse.json(
+        { error: "Invalid authorization header format" },
+        { status: 401 },
       );
-      userRole = payload.role;
-      userId = payload.sub || payload.userId;
-    } catch (e) {
-      // Try to get user from request context or fallback to fetching from DB
-      const user = await prisma.user.findMany({ take: 1 });
-      if (!user.length) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      // Set fallback values from first user
-      userRole = user[0].role;
-      userId = user[0].id;
     }
+
+    const payload = verifyToken(token);
+    if (!payload) {
+      return NextResponse.json(
+        { error: "Invalid or expired token" },
+        { status: 401 },
+      );
+    }
+
+    const userId = payload.id;
+    const userRole = payload.role;
 
     let bookings;
 
@@ -177,16 +177,26 @@ export async function GET(req: NextRequest) {
               city: true,
             },
           },
+          staff: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+              specialties: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",
         },
       });
-    } else if (
-      userRole === "SALON_ADMIN" ||
-      userRole === "SALON_OWNER" ||
-      userRole === "SALON_STAFF"
-    ) {
+    } else if (userRole === "SALON_ADMIN" || userRole === "SALON_STAFF") {
       // Salon staff sees only their salon's bookings
       const salonRel =
         (await prisma.salonAdmin.findUnique({
@@ -222,6 +232,20 @@ export async function GET(req: NextRequest) {
               city: true,
             },
           },
+          staff: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+              specialties: true,
+            },
+          },
         },
         orderBy: {
           createdAt: "desc",
@@ -245,6 +269,20 @@ export async function GET(req: NextRequest) {
               slug: true,
               address: true,
               city: true,
+            },
+          },
+          staff: {
+            select: {
+              id: true,
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  phone: true,
+                },
+              },
+              specialties: true,
             },
           },
         },

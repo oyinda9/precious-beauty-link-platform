@@ -76,6 +76,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const {
       name,
+      slug: providedSlug,
       description,
       address,
       city,
@@ -92,7 +93,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const slug = name.toLowerCase().replace(/\s+/g, "-");
+    // Use provided slug or auto-generate from name
+    const slug = providedSlug
+      ? providedSlug.toLowerCase().replace(/[^a-z0-9-]/g, "")
+      : name.toLowerCase().replace(/\s+/g, "-");
 
     const salon = await prisma.salon.create({
       data: {
@@ -107,7 +111,7 @@ export async function POST(request: NextRequest) {
         longitude: longitude || null,
         id:
           currentUser.role === UserRole.SUPER_ADMIN
-            ? currentUser.userId
+            ? currentUser.id
             : undefined,
       },
     });

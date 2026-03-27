@@ -17,15 +17,34 @@ export async function GET(request: NextRequest) {
 
     // find all salons for which the user is admin
     const adminLinks = await prisma.salonAdmin.findMany({
-      where: { userId: payload.userId },
+      where: { userId: payload.id },
       select: { salon: true },
     });
 
-    const salons = adminLinks.map((link) => link.salon);
+    // Fetch all subscriptions for these salons in a single query
+    const salonIds = adminLinks.map((link) => link.salon.id);
+    const subscriptions = await prisma.subscription.findMany({
+      where: { salonId: { in: salonIds } },
+      select: { salonId: true, plan: true, status: true },
+    });
+
+    // Create a map for quick lookup
+    const subscriptionMap = new Map(
+      subscriptions.map((sub) => [
+        sub.salonId,
+        { plan: sub.plan, status: sub.status },
+      ]),
+    );
+
+    // Attach subscription data to salons
+    const salons = adminLinks.map((link) => ({
+      ...link.salon,
+      subscription: subscriptionMap.get(link.salon.id) || null,
+    }));
 
     // include basic user info from token
     const user = {
-      id: payload.userId,
+      id: payload.id,
       email: payload.email,
       fullName: payload.fullName,
       role: payload.role,

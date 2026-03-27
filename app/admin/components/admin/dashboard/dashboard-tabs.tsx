@@ -4,6 +4,7 @@ import { DashboardData } from "./types";
 import { OverviewTab } from "./tabs/overview-tab";
 import { SalonsTab } from "./tabs/salons-tab";
 import { BookingsTab } from "./tabs/bookings-tab";
+import { PaymentVerificationTab } from "./tabs/payment-verification-tab";
 import {
   Building2,
   Users,
@@ -67,6 +68,8 @@ export function DashboardTabs({
       return <Placeholder label="Users" />;
     case "subscriptions":
       return <Placeholder label="Subscriptions" />;
+    case "payments":
+      return <PaymentVerificationTab />;
     case "analytics":
       return <Placeholder label="Analytics" />;
     case "settings":

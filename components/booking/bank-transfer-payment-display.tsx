@@ -15,17 +15,32 @@ interface BankDetails {
 }
 
 interface BankTransferPaymentDisplayProps {
-  bankDetails: BankDetails;
+  bankDetails?: BankDetails;
   onPaymentSubmitted: () => void;
   isSubmitting?: boolean;
 }
 
+// Get bank details from environment variables
+function getDefaultBankDetails(amount: number, reference: string): BankDetails {
+  return {
+    salonName: "Precious Beauty Link",
+    accountName: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME || null,
+    accountNumber: process.env.NEXT_PUBLIC_BANK_ACCOUNT_NUMBER || null,
+    bankName: process.env.NEXT_PUBLIC_BANK_NAME || null,
+    amount,
+    reference,
+  };
+}
+
 export function BankTransferPaymentDisplay({
-  bankDetails,
+  bankDetails: providedBankDetails,
   onPaymentSubmitted,
   isSubmitting = false,
 }: BankTransferPaymentDisplayProps) {
   const [copied, setCopied] = useState<string | null>(null);
+
+  // Use provided bank details or get from environment - use dummy values if neither exist
+  const bankDetails = providedBankDetails || getDefaultBankDetails(0, "");
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);

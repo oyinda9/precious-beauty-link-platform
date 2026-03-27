@@ -57,6 +57,10 @@ interface SalonInfo {
   city: string;
   email: string;
   phone: string;
+  subscription?: {
+    plan: string;
+    status: string;
+  } | null;
 }
 
 export default function DashboardPage() {
@@ -192,7 +196,14 @@ export default function DashboardPage() {
       : 0;
 
   const copyBookingLink = () => {
-    if (!salon) return;
+    if (!salon || !salon.slug) {
+      toast({
+        title: "Error",
+        description: "Salon slug not loaded yet. Please refresh the page.",
+        variant: "destructive",
+      });
+      return;
+    }
     const url =
       typeof window !== "undefined"
         ? `${window.location.origin}/salon/${salon.slug}`
@@ -253,7 +264,9 @@ export default function DashboardPage() {
             </div>
             <div className="hidden sm:flex items-center gap-3 bg-white/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/30 flex-shrink-0">
               <Award className="w-5 h-5 text-amber-300" />
-              <span className="text-sm font-medium">Premium Plan</span>
+              <span className="text-sm font-medium">
+                {salon?.subscription?.plan || "Free Plan"} Plan
+              </span>
             </div>
           </div>
         </div>
@@ -280,16 +293,19 @@ export default function DashboardPage() {
                 {/* URL and Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 sm:p-3">
                   <span className="flex-1 text-xs sm:text-sm font-mono text-purple-700 dark:text-purple-300 truncate px-2 py-1 sm:py-0 break-all sm:break-normal">
-                    {typeof window !== "undefined"
+                    {typeof window !== "undefined" && salon.slug
                       ? `${window.location.origin}/salon/${salon.slug}`
-                      : `/salon/${salon.slug}`}
+                      : salon.slug
+                        ? `/salon/${salon.slug}`
+                        : "Loading..."}
                   </span>
                   <div className="flex gap-2 w-full sm:w-auto">
                     <Button
                       size="sm"
                       variant="ghost"
                       onClick={copyBookingLink}
-                      className="flex-1 sm:flex-none text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      disabled={!salon.slug}
+                      className="flex-1 sm:flex-none text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50"
                     >
                       <Copy className="w-3 sm:w-4 h-3 sm:h-4 mr-1" />
                       <span className="hidden sm:inline">Copy</span>
@@ -298,14 +314,11 @@ export default function DashboardPage() {
                       size="sm"
                       variant="ghost"
                       asChild
-                      className="flex-1 sm:flex-none text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      disabled={!salon.slug}
+                      className="flex-1 sm:flex-none text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/20 disabled:opacity-50"
                     >
                       <a
-                        href={
-                          typeof window !== "undefined"
-                            ? `/salon/${salon.slug}`
-                            : "#"
-                        }
+                        href={salon.slug ? `/salon/${salon.slug}` : "#"}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -518,6 +531,22 @@ export default function DashboardPage() {
                     </p>
                     <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white">
                       {salon.phone}
+                    </p>
+                  </div>
+                  <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
+                      Subscription Plan
+                    </p>
+                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white">
+                      {salon.subscription?.plan || "Free"}
+                    </p>
+                  </div>
+                  <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
+                    <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
+                      Booking URL Slug
+                    </p>
+                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white font-mono truncate">
+                      {salon.slug || "Loading..."}
                     </p>
                   </div>
                 </div>

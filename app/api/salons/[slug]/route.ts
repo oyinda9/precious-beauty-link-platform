@@ -103,7 +103,7 @@ export async function PUT(
 
     // Check authorization
     const isAdmin = salon.admins.some(
-      (admin) => admin.userId === payload.userId,
+      (admin) => admin.userId === payload.id,
     );
     if (!isSuperAdmin(payload.role) && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -139,12 +139,19 @@ export async function DELETE(
     }
 
     const token = extractToken(request.headers.get("authorization"));
-    if (!token)
+    if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const payload = verifyToken(token);
-    if (!payload || !isSuperAdmin(payload.role))
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (!payload) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Super admin can delete any salon
+    if (!isSuperAdmin(payload.role)) {
+      return NextResponse.json({ error: "Forbidden - Only super admin can delete salons" }, { status: 403 });
+    }
 
     const url = new URL(request.url);
     const rawSlug =

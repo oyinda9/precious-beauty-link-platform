@@ -86,7 +86,7 @@ export async function POST(
 
     // Verify authorization
     const isAuthorized = salon.admins.some(
-      (admin) => admin.userId === payload.userId,
+      (admin) => admin.userId === payload.id,
     );
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

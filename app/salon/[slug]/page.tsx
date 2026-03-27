@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { BookingConfirmationModal } from "@/components/booking/booking-confirmation-modal";
+
 // Utility to detect iPhone
 function isIphone() {
   if (typeof navigator === "undefined") return false;
@@ -38,7 +40,14 @@ export default function SalonBookingPage() {
   const [startTime, setStartTime] = useState("");
   const [notes, setNotes] = useState("");
   const [clientPhone, setClientPhone] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "BANK_TRANSFER" | "PAY_AT_SALON"
+  >("PAY_AT_SALON");
   const [submitting, setSubmitting] = useState(false);
+
+  // Confirmation modal state
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [confirmationData, setConfirmationData] = useState<any>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -83,12 +92,13 @@ export default function SalonBookingPage() {
       selectedServices.length === 0 ||
       !bookingDate ||
       !startTime ||
-      !clientPhone
+      !clientPhone ||
+      !selectedPaymentMethod
     ) {
       toast({
         title: "Missing Fields",
         description:
-          "Please select at least one service, date, time, and enter your phone number.",
+          "Please select service(s), date, time, phone, and payment method.",
         variant: "destructive",
       });
       return;
@@ -114,6 +124,7 @@ export default function SalonBookingPage() {
         startTime,
         notes: notes || undefined,
         clientPhone: clientPhone.trim(),
+        paymentMethod: selectedPaymentMethod,
       };
 
       // Log payload for debugging
@@ -128,17 +139,31 @@ export default function SalonBookingPage() {
       const data = await res.json();
 
       if (res.ok) {
-        toast({
-          title: "Booking Confirmed!",
-          description: `Your booking was successful. Ref: ${data.booking.id}`,
-          variant: "default",
+        // Store booking data for modal
+        const selectedServicesData = services.filter((s) =>
+          selectedServices.includes(s.id),
+        );
+        const serviceName = selectedServicesData.map((s) => s.name).join(", ");
+
+        setConfirmationData({
+          bookingId: data.booking.id,
+          amount: data.booking.totalPrice,
+          salonName: data.booking.salonName,
+          serviceName: serviceName,
+          bookingDate: data.booking.bookingDate,
+          startTime: data.booking.startTime,
+          paymentMethod: data.booking.paymentMethod,
         });
+        setShowConfirmation(true);
+
+        // Clear form
         setSelectedServices([]);
         setSelectedStaff(null);
         setBookingDate("");
         setStartTime("");
         setNotes("");
         setClientPhone("");
+        setSelectedPaymentMethod("PAY_AT_SALON");
       } else {
         console.error("Booking error:", data);
         toast({
@@ -319,7 +344,7 @@ export default function SalonBookingPage() {
                             <span>{svc.duration} minutes</span>
                           </div>
                         </div>
-                        <span className="font-bold text-purple-600 flex-shrink-0 ml-4">
+                        <span className="font-bold text-purple-600 shrink-0 ml-4">
                           ₦{svc.price.toLocaleString()}
                         </span>
                       </div>
@@ -434,7 +459,11 @@ export default function SalonBookingPage() {
                   className="w-full p-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:outline-none transition"
                   placeholder="e.g. +2348012345678"
                   value={clientPhone}
-                  onChange={(e) => setClientPhone(e.target.value)}
+                  onChange={(e) => {
+                    // Filter to only allow digits, +, -, and spaces
+                    const filtered = e.target.value.replace(/[^\d+\- ]/g, "");
+                    setClientPhone(filtered);
+                  }}
                   required
                 />
               </div>
@@ -452,6 +481,79 @@ export default function SalonBookingPage() {
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                 />
+              </div>
+
+              {/* Payment Method */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                  <span className="text-xl">💳</span>
+                  How would you like to pay? *
+                </h3>
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod("PAY_AT_SALON")}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                      selectedPaymentMethod === "PAY_AT_SALON"
+                        ? "border-purple-500 bg-purple-50 shadow-md"
+                        : "border-gray-200 bg-white hover:border-purple-200"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center mt-1 shrink-0 transition-all ${
+                          selectedPaymentMethod === "PAY_AT_SALON"
+                            ? "border-purple-500 bg-purple-500"
+                            : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {selectedPaymentMethod === "PAY_AT_SALON" && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-800 block">
+                          Pay at Salon (Cash or Card)
+                        </span>
+                        <p className="text-gray-600 text-sm mt-1">
+                          Pay upon arrival at the salon with cash or card
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod("BANK_TRANSFER")}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                      selectedPaymentMethod === "BANK_TRANSFER"
+                        ? "border-purple-500 bg-purple-50 shadow-md"
+                        : "border-gray-200 bg-white hover:border-purple-200"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className={`w-5 h-5 rounded border-2 flex items-center justify-center mt-1 shrink-0 transition-all ${
+                          selectedPaymentMethod === "BANK_TRANSFER"
+                            ? "border-purple-500 bg-purple-500"
+                            : "border-gray-300 bg-white"
+                        }`}
+                      >
+                        {selectedPaymentMethod === "BANK_TRANSFER" && (
+                          <Check className="w-3 h-3 text-white" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <span className="font-semibold text-gray-800 block">
+                          Bank Transfer
+                        </span>
+                        <p className="text-gray-600 text-sm mt-1">
+                          Transfer to our bank account (2 hours to pay)
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {/* Summary Card */}
@@ -522,6 +624,20 @@ export default function SalonBookingPage() {
           </div>
         </div>
       </div>
+
+      {/* Booking Confirmation Modal */}
+      {showConfirmation && confirmationData && (
+        <BookingConfirmationModal
+          bookingId={confirmationData.bookingId}
+          amount={confirmationData.amount}
+          salonName={confirmationData.salonName}
+          serviceName={confirmationData.serviceName}
+          bookingDate={confirmationData.bookingDate}
+          startTime={confirmationData.startTime}
+          paymentMethod={confirmationData.paymentMethod || "PAY_AT_SALON"}
+          onClose={() => setShowConfirmation(false)}
+        />
+      )}
     </div>
   );
 }
