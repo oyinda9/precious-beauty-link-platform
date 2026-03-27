@@ -44,6 +44,9 @@ interface ClientBooking {
     slug: string;
     address: string;
     city: string;
+    bankAccountName?: string;
+    bankAccountNumber?: string;
+    bankName?: string;
   };
   staff?: {
     id: string;
@@ -168,9 +171,21 @@ export default function ClientBookingsPage() {
   };
 
   // Payment Info Display Component
-  const PaymentInfoDisplay = () => {
-    const bankDetails = getBankDetails();
-    if (!bankDetails.accountName) return null;
+  const PaymentInfoDisplay = ({ 
+    accountName, 
+    accountNumber, 
+    bankName 
+  }: {
+    accountName?: string;
+    accountNumber?: string;
+    bankName?: string;
+  }) => {
+    // Use salon details if provided, otherwise fallback to default
+    const finalAccountName = accountName;
+    const finalAccountNumber = accountNumber;
+    const finalBankName = bankName;
+
+    if (!finalAccountName || !finalAccountNumber) return null;
 
     return (
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 space-y-2">
@@ -184,19 +199,21 @@ export default function ClientBookingsPage() {
           <div className="flex justify-between">
             <span className="text-gray-600">Account Name:</span>
             <span className="font-mono font-medium">
-              {bankDetails.accountName}
+              {finalAccountName}
             </span>
           </div>
           <div className="flex justify-between">
             <span className="text-gray-600">Account Number:</span>
             <span className="font-mono font-medium">
-              {bankDetails.accountNumber}
+              {finalAccountNumber}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-600">Bank:</span>
-            <span className="font-medium">{bankDetails.bankName}</span>
-          </div>
+          {finalBankName && (
+            <div className="flex justify-between">
+              <span className="text-gray-600">Bank:</span>
+              <span className="font-medium">{finalBankName}</span>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -538,7 +555,11 @@ export default function ClientBookingsPage() {
 
                           {/* Payment Info for Pending */}
                           {booking.status === "PENDING" && (
-                            <PaymentInfoDisplay />
+                            <PaymentInfoDisplay 
+                              accountName={booking.salon.bankAccountName}
+                              accountNumber={booking.salon.bankAccountNumber}
+                              bankName={booking.salon.bankName}
+                            />
                           )}
 
                           {/* Footer */}
@@ -718,7 +739,11 @@ export default function ClientBookingsPage() {
 
                           {/* Payment Info for Pending */}
                           {booking.status === "PENDING" && (
-                            <PaymentInfoDisplay />
+                            <PaymentInfoDisplay 
+                              accountName={booking.salon.bankAccountName}
+                              accountNumber={booking.salon.bankAccountNumber}
+                              bankName={booking.salon.bankName}
+                            />
                           )}
                         </div>
                       </div>

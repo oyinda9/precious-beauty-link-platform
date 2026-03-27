@@ -25,6 +25,9 @@ interface BookingConfirmationModalProps {
   startTime: string;
   paymentMethod: "BANK_TRANSFER" | "PAY_AT_SALON";
   onClose: () => void;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankName?: string;
 }
 
 export function BookingConfirmationModal({
@@ -36,9 +39,19 @@ export function BookingConfirmationModal({
   startTime,
   paymentMethod,
   onClose,
+  bankAccountName,
+  bankAccountNumber,
+  bankName,
 }: BookingConfirmationModalProps) {
   const [copied, setCopied] = useState<string | null>(null);
-  const bankDetails = getBankDetails();
+  
+  // Use salon's bank details if provided, otherwise fallback to default
+  const defaultDetails = getBankDetails();
+  const bankDetails = {
+    accountName: bankAccountName || defaultDetails.accountName,
+    accountNumber: bankAccountNumber || defaultDetails.accountNumber,
+    bankName: bankName || defaultDetails.bankName,
+  };
 
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);

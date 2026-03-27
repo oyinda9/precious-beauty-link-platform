@@ -54,6 +54,9 @@ type SettingsData = {
   salonCity: string;
   salonState: string;
   businessHours: BusinessHours;
+  bankAccountName?: string;
+  bankAccountNumber?: string;
+  bankName?: string;
 };
 
 const DEFAULT_HOURS: BusinessHours = {
@@ -93,6 +96,9 @@ export default function SettingsPage() {
     salonCity: "",
     salonState: "",
     businessHours: DEFAULT_HOURS,
+    bankAccountName: "",
+    bankAccountNumber: "",
+    bankName: "",
   });
 
   const [savingInfo, setSavingInfo] = useState(false);
@@ -160,6 +166,9 @@ export default function SettingsPage() {
       salonCity: data.salonCity ?? "",
       salonState: data.salonState ?? "",
       businessHours: normalizeBusinessHours(data.businessHours),
+      bankAccountName: data.bankAccountName ?? "",
+      bankAccountNumber: data.bankAccountNumber ?? "",
+      bankName: data.bankName ?? "",
     });
   };
 
@@ -252,6 +261,9 @@ export default function SettingsPage() {
           salonAddress: settings.salonAddress,
           salonCity: settings.salonCity,
           salonState: settings.salonState,
+          bankAccountName: settings.bankAccountName,
+          bankAccountNumber: settings.bankAccountNumber,
+          bankName: settings.bankName,
         }),
       });
 
@@ -270,6 +282,9 @@ export default function SettingsPage() {
           salonAddress: data.salonAddress ?? prev.salonAddress,
           salonCity: data.salonCity ?? prev.salonCity,
           salonState: data.salonState ?? prev.salonState,
+          bankAccountName: data.bankAccountName ?? prev.bankAccountName,
+          bankAccountNumber: data.bankAccountNumber ?? prev.bankAccountNumber,
+          bankName: data.bankName ?? prev.bankName,
         }));
       }
 
@@ -507,6 +522,60 @@ export default function SettingsPage() {
                       setSettings((p) => ({ ...p, salonState: e.target.value }))
                     }
                     className="mt-1"
+                    disabled={loadingSettings || savingInfo}
+                  />
+                </div>
+
+                <div className="border-t pt-4 mt-4">
+                  <h4 className="font-medium text-sm mb-3 text-slate-700 dark:text-slate-300">
+                    Bank Account Details (for clients to transfer)
+                  </h4>
+                </div>
+
+                <div>
+                  <Label className="text-sm">Account Name</Label>
+                  <Input
+                    value={settings.bankAccountName}
+                    onChange={(e) =>
+                      setSettings((p) => ({
+                        ...p,
+                        bankAccountName: e.target.value,
+                      }))
+                    }
+                    className="mt-1"
+                    placeholder="e.g., John's Salon"
+                    disabled={loadingSettings || savingInfo}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm">Account Number</Label>
+                  <Input
+                    value={settings.bankAccountNumber}
+                    onChange={(e) =>
+                      setSettings((p) => ({
+                        ...p,
+                        bankAccountNumber: e.target.value,
+                      }))
+                    }
+                    className="mt-1"
+                    placeholder="e.g., 0123456789"
+                    disabled={loadingSettings || savingInfo}
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm">Bank Name</Label>
+                  <Input
+                    value={settings.bankName}
+                    onChange={(e) =>
+                      setSettings((p) => ({
+                        ...p,
+                        bankName: e.target.value,
+                      }))
+                    }
+                    className="mt-1"
+                    placeholder="e.g., Zenith Bank"
                     disabled={loadingSettings || savingInfo}
                   />
                 </div>

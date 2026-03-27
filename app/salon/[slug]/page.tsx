@@ -153,6 +153,9 @@ export default function SalonBookingPage() {
           bookingDate: data.booking.bookingDate,
           startTime: data.booking.startTime,
           paymentMethod: data.booking.paymentMethod,
+          bankAccountName: salon?.bankAccountName,
+          bankAccountNumber: salon?.bankAccountNumber,
+          bankName: salon?.bankName,
         });
         setShowConfirmation(true);
 
@@ -636,6 +639,9 @@ export default function SalonBookingPage() {
           startTime={confirmationData.startTime}
           paymentMethod={confirmationData.paymentMethod || "PAY_AT_SALON"}
           onClose={() => setShowConfirmation(false)}
+          bankAccountName={confirmationData.bankAccountName}
+          bankAccountNumber={confirmationData.bankAccountNumber}
+          bankName={confirmationData.bankName}
         />
       )}
     </div>

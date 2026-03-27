@@ -98,6 +98,9 @@ export async function GET(request: NextRequest) {
       salonCity: admin.salon.city ?? "",
       salonState: (admin.salon as any).state ?? "",
       businessHours: normalizeBusinessHours((admin.salon as any).businessHours),
+      bankAccountName: admin.salon.bankAccountName ?? "",
+      bankAccountNumber: admin.salon.bankAccountNumber ?? "",
+      bankName: admin.salon.bankName ?? "",
     });
   } catch {
     return NextResponse.json(
@@ -162,6 +165,18 @@ export async function PUT(request: NextRequest) {
       userUpdateData.email = body.email.trim().toLowerCase();
     }
 
+    if (typeof body.bankAccountName === "string") {
+      salonUpdateData.bankAccountName = body.bankAccountName.trim();
+    }
+
+    if (typeof body.bankAccountNumber === "string") {
+      salonUpdateData.bankAccountNumber = body.bankAccountNumber.trim();
+    }
+
+    if (typeof body.bankName === "string") {
+      salonUpdateData.bankName = body.bankName.trim();
+    }
+
     if (body.businessHours && typeof body.businessHours === "object") {
       salonUpdateData.businessHours = normalizeBusinessHours(
         body.businessHours,
@@ -189,6 +204,9 @@ export async function PUT(request: NextRequest) {
       businessHours: normalizeBusinessHours(
         (updatedSalon as any).businessHours,
       ),
+      bankAccountName: updatedSalon.bankAccountName ?? "",
+      bankAccountNumber: updatedSalon.bankAccountNumber ?? "",
+      bankName: updatedSalon.bankName ?? "",
       success: true,
     });
   } catch {

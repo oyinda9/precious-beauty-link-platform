@@ -175,6 +175,9 @@ export async function GET(req: NextRequest) {
               slug: true,
               address: true,
               city: true,
+              bankAccountName: true,
+              bankAccountNumber: true,
+              bankName: true,
             },
           },
           staff: {
@@ -230,6 +233,9 @@ export async function GET(req: NextRequest) {
               slug: true,
               address: true,
               city: true,
+              bankAccountName: true,
+              bankAccountNumber: true,
+              bankName: true,
             },
           },
           staff: {
@@ -269,6 +275,9 @@ export async function GET(req: NextRequest) {
               slug: true,
               address: true,
               city: true,
+              bankAccountName: true,
+              bankAccountNumber: true,
+              bankName: true,
             },
           },
           staff: {
