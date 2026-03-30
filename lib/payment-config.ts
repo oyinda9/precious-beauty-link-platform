@@ -43,14 +43,15 @@ export async function hasCustomPaymentMethods(): Promise<boolean> {
  */
 export async function getAvailablePaymentMethods(): Promise<string[]> {
   const config = await getPaymentConfig();
-  if (!config) return ["MONNIFY"];
+  if (!config) return ["MONNIFY", "PAYSTACK"];
 
   const methods: string[] = [];
   if (config.acceptBankTransfer) methods.push("BANK_TRANSFER");
   if (config.acceptCardPayment) methods.push("CARD_PAYMENT");
 
-  // Always include Monnify as fallback
+  // Always include Monnify and Paystack as fallback options
   methods.push("MONNIFY");
+  methods.push("PAYSTACK");
 
   return methods;
 }

@@ -1076,7 +1076,9 @@ function BookingTable({
                     onValueChange={(val) => handleStatusChange(booking.id, val)}
                     disabled={isFetching || updatingBookingId === booking.id}
                   >
-                    <SelectTrigger className={`h-9 text-xs border-2 rounded-lg font-semibold ${status.badge}`}>
+                    <SelectTrigger
+                      className={`h-9 text-xs border-2 rounded-lg font-semibold ${status.badge}`}
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

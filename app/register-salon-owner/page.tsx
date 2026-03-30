@@ -102,8 +102,8 @@ export default function RegisterSalonOwnerPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [paymentConfig, setPaymentConfig] = useState<any>(null);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    "MONNIFY" | "BANK_TRANSFER" | "CARD_PAYMENT" | "CUSTOM_GATEWAY"
-  >("MONNIFY");
+    "MONNIFY" | "PAYSTACK" | "BANK_TRANSFER" | "CARD_PAYMENT" | "CUSTOM_GATEWAY"
+  >("BANK_TRANSFER");
   const [paymentProofFile, setPaymentProofFile] = useState<File | null>(null);
   const [loadingPaymentConfig, setLoadingPaymentConfig] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -432,6 +432,33 @@ export default function RegisterSalonOwnerPage() {
         setBankDetails(subData.bankDetails);
         setShowPaymentUpload(true);
         setLoading(false);
+        return;
+      }
+
+      // Handle Paystack
+      if (selectedPaymentMethod === "PAYSTACK") {
+        const payRes: Response = await fetch("/api/payments/paystack/initialize", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            planKey,
+          }),
+        });
+
+        const payData = await payRes.json();
+        if (!payRes.ok) {
+          throw new Error(payData?.error || "Paystack initialization failed");
+        }
+        if (!payData?.redirectUrl) {
+          throw new Error("Missing Paystack checkout URL");
+        }
+
+        // Redirect to Paystack immediately
+        window.location.href = payData.redirectUrl;
         return;
       }
 
@@ -1145,9 +1172,12 @@ export default function RegisterSalonOwnerPage() {
 
                     {/* Payment Method Selection */}
                     <div className="space-y-3">
+                      <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl text-sm text-orange-700">
+                        <p className="font-semibold mb-1">💡 Recommended</p>
+                        <p><strong>Bank Transfer</strong> is our recommended payment method. You can also use Paystack or Monnify for instant checkout.</p>
+                      </div>
                       <Label className="text-sm font-medium text-gray-700">
-                        Select Payment Method{" "}
-                        <span className="text-red-500">*</span>
+                        Payment Method
                       </Label>
 
                       {/* Bank Transfer Option */}
@@ -1239,6 +1269,48 @@ export default function RegisterSalonOwnerPage() {
                         </label>
                       )}
 
+                      {/* Paystack Option (Disabled for now) */}
+                      <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-not-allowed hover:border-gray-200 transition-all opacity-50 bg-gray-50">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="PAYSTACK"
+                          checked={selectedPaymentMethod === "PAYSTACK"}
+                          disabled={true}
+                          className="mr-3 cursor-not-allowed"
+                        />
+                        <span className="font-semibold text-gray-500">
+                          Paystack Secure Checkout
+                        </span>
+                        <span className="ml-2 text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded">
+                          Coming Soon
+                        </span>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Quick and secure payment with Paystack
+                        </p>
+                      </label>
+
+                      {/* Monnify Option (Disabled for now) */}
+                      <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-not-allowed hover:border-gray-200 transition-all opacity-50 bg-gray-50">
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="MONNIFY"
+                          checked={selectedPaymentMethod === "MONNIFY"}
+                          disabled={true}
+                          className="mr-3 cursor-not-allowed"
+                        />
+                        <span className="font-semibold text-gray-500">
+                          Monnify Secure Checkout
+                        </span>
+                        <span className="ml-2 text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded">
+                          Coming Soon
+                        </span>
+                        <p className="text-sm text-gray-400 mt-1">
+                          Secure payment gateway for card and account transfers
+                        </p>
+                      </label>
+
                       {/* Custom Gateway Option - Always Available */}
                       {/* {(process.env.NEXT_PUBLIC_BANK_ACCOUNT_NAME ||
                         paymentConfig?.bankAccountName) && (
@@ -1286,27 +1358,7 @@ export default function RegisterSalonOwnerPage() {
                         </label>
                       )} */}
 
-                      {/* Monnify Option (Always Available) */}
-                      <label className="block p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-blue-300 transition-all">
-                        <input
-                          type="radio"
-                          name="paymentMethod"
-                          value="MONNIFY"
-                          checked={selectedPaymentMethod === "MONNIFY"}
-                          onChange={(e) =>
-                            setSelectedPaymentMethod(
-                              e.target.value as "MONNIFY",
-                            )
-                          }
-                          className="mr-3"
-                        />
-                        <span className="font-semibold text-gray-700">
-                          Monnify Secure Checkout
-                        </span>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Secure payment gateway for card and account transfers
-                        </p>
-                      </label>
+
                     </div>
 
                     {/* Payment Instructions */}
@@ -1333,6 +1385,14 @@ export default function RegisterSalonOwnerPage() {
                       </div>
                     )}
 
+                    {selectedPaymentMethod === "PAYSTACK" && (
+                      <div className="p-4 bg-green-50 border border-green-200 rounded-xl text-sm text-green-700">
+                        Payment is completed on{" "}
+                        <strong>Paystack secure checkout</strong>. Click continue
+                        to proceed.
+                      </div>
+                    )}
+
                     {selectedPaymentMethod === "MONNIFY" && (
                       <div className="p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
                         Payment is completed on{" "}
@@ -1340,6 +1400,8 @@ export default function RegisterSalonOwnerPage() {
                         to proceed.
                       </div>
                     )}
+
+
 
                     <div className="flex gap-3 pt-2">
                       <Button

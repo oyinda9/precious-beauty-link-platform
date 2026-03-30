@@ -234,6 +234,7 @@ model Subscription {
   status                SubscriptionStatus @default(TRIAL)
   stripeCustomerId      String?
   stripeSubId           String?
+  reference             String?            @unique
   monthlyBookingLimit   Int                @default(30)
   bookingsUsedThisMonth Int                @default(0)
   bookingResetDate      DateTime           @default(now())
@@ -250,6 +251,7 @@ model Subscription {
   salon                 Salon              @relation(fields: [salonId], references: [id], onDelete: Cascade)
 
   @@index([stripeCustomerId])
+  @@index([reference])
   @@index([bookingResetDate])
 }
 
