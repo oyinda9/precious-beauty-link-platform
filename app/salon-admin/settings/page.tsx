@@ -25,6 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
 import PaymentProofUpload from "@/components/subscription/payment-proof-upload";
+import { FeatureAccess } from "@/components/subscription/feature-access";
 
 type SubscriptionData = {
   planName: string;
@@ -424,6 +425,12 @@ export default function SettingsPage() {
 
   return (
     <SalonAdminLayout>
+      {/* Subscription Features Section */}
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold mb-4">Your Subscription Features</h2>
+        <FeatureAccess />
+      </div>
+
       <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm mb-8">
         <CardHeader className="p-6">
           <CardTitle className="text-lg flex items-center gap-2">

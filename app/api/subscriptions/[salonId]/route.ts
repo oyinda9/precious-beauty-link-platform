@@ -12,7 +12,7 @@ import { logSubscriptionChange } from "@/lib/services/audit-service";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { salonId: string } },
+  { params }: { params: Promise<{ salonId: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -20,7 +20,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { salonId } = params;
+    const { salonId } = await params;
     const { newPlan } = await request.json();
 
     if (!newPlan) {
@@ -89,7 +89,7 @@ export async function POST(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { salonId: string } },
+  { params }: { params: Promise<{ salonId: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -97,7 +97,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { salonId } = params;
+    const { salonId } = await params;
     const { newPlan } = await request.json();
 
     if (!newPlan) {
@@ -166,7 +166,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { salonId: string } },
+  { params }: { params: Promise<{ salonId: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -174,7 +174,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { salonId } = params;
+    const { salonId } = await params;
 
     // Verify salon ownership
     const salon = await require("@/lib/prisma").prisma.salon.findFirst({

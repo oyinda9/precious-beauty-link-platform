@@ -6,17 +6,10 @@ import { apiError } from "@/lib/api-utils";
 // GET salon by slug
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    // derive slug: handle params being a Promise and fallback to parsing URL
-    const resolvedParams =
-      params && typeof (params as any).then === "function"
-        ? await (params as any)
-        : params;
-    const url = new URL(request.url);
-    const rawSlug =
-      resolvedParams?.slug || url.pathname.split("/").filter(Boolean).pop();
+    const { slug: rawSlug } = await params;
     if (!rawSlug) {
       return NextResponse.json(
         { error: "Invalid salon slug" },
@@ -64,15 +57,11 @@ export async function GET(
 // PUT update salon (super admin or salon admin)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    // unwrap params if needed
-    const resolvedParams =
-      params && typeof (params as any).then === "function"
-        ? await (params as any)
-        : params;
-    if (!resolvedParams?.slug) {
+    const { slug } = await params;
+    if (!slug) {
       return NextResponse.json(
         { error: "Invalid salon slug" },
         { status: 400 },
@@ -89,8 +78,7 @@ export async function PUT(
     }
 
     const url = new URL(request.url);
-    const rawSlug =
-      resolvedParams?.slug || url.pathname.split("/").filter(Boolean).pop();
+    const rawSlug = slug;
     const normalized = rawSlug.toString().toLowerCase();
     const salon = await prisma.salon.findUnique({
       where: { slug: normalized },
@@ -102,9 +90,7 @@ export async function PUT(
     }
 
     // Check authorization
-    const isAdmin = salon.admins.some(
-      (admin) => admin.userId === payload.id,
-    );
+    const isAdmin = salon.admins.some((admin) => admin.userId === payload.id);
     if (!isSuperAdmin(payload.role) && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -124,14 +110,11 @@ export async function PUT(
 // DELETE (soft-delete) salon (super admin only)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    const resolvedParams =
-      params && typeof (params as any).then === "function"
-        ? await (params as any)
-        : params;
-    if (!resolvedParams?.slug) {
+    const { slug } = await params;
+    if (!slug) {
       return NextResponse.json(
         { error: "Invalid salon slug" },
         { status: 400 },
@@ -150,12 +133,14 @@ export async function DELETE(
 
     // Super admin can delete any salon
     if (!isSuperAdmin(payload.role)) {
-      return NextResponse.json({ error: "Forbidden - Only super admin can delete salons" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden - Only super admin can delete salons" },
+        { status: 403 },
+      );
     }
 
     const url = new URL(request.url);
-    const rawSlug =
-      resolvedParams?.slug || url.pathname.split("/").filter(Boolean).pop();
+    const rawSlug = slug;
     const normalized = rawSlug.toString().toLowerCase();
 
     const salon = await prisma.salon.findUnique({

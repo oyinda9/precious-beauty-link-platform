@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken, isSalonAdmin } from "@/lib/auth";
 import { apiError } from "@/lib/api-utils";
+import { canCreateService } from "@/lib/subscription-enforcement";
 
 // GET services for a salon
 export async function GET(
@@ -86,6 +87,15 @@ export async function POST(
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
+      );
+    }
+
+    // Check subscription plan limits
+    const canCreate = await canCreateService(salon.id);
+    if (!canCreate.allowed) {
+      return NextResponse.json(
+        { error: canCreate.reason },
+        { status: 403 },
       );
     }
 

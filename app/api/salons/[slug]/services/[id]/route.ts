@@ -6,7 +6,7 @@ import { apiError } from "@/lib/api-utils";
 // PUT update service
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string; id: string } },
+  { params }: { params: Promise<{ slug: string; id: string }> },
 ) {
   try {
     const token = extractToken(request.headers.get("authorization"));
@@ -17,7 +17,7 @@ export async function PUT(
     if (!payload || !isSalonAdmin(payload.role))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { slug, id } = params;
+    const { slug, id } = await params;
     if (!slug || !id)
       return NextResponse.json(
         { error: "Invalid parameters" },
@@ -69,7 +69,7 @@ export async function PUT(
 // DELETE service
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { slug: string; id: string } },
+  { params }: { params: Promise<{ slug: string; id: string }> },
 ) {
   try {
     const token = extractToken(request.headers.get("authorization"));
@@ -80,7 +80,7 @@ export async function DELETE(
     if (!payload || !isSalonAdmin(payload.role))
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const { slug, id } = params;
+    const { slug, id } = await params;
     if (!slug || !id)
       return NextResponse.json(
         { error: "Invalid parameters" },

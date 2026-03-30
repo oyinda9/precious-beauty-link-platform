@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { BookingStatus, PaymentStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { verifyToken, extractToken } from "@/lib/auth";
+import { canCreateBooking } from "@/lib/subscription-enforcement";
 
 export async function POST(req: NextRequest) {
   try {
@@ -80,6 +81,15 @@ export async function POST(req: NextRequest) {
 
     const totalPrice = services.reduce((sum, svc) => sum + svc.price, 0);
     const totalDuration = services.reduce((sum, svc) => sum + svc.duration, 0);
+
+    // Check subscription booking limits
+    const canBook = await canCreateBooking(salonId);
+    if (!canBook.allowed) {
+      return NextResponse.json(
+        { error: canBook.reason, remaining: canBook.remaining },
+        { status: 403 },
+      );
+    }
 
     const booking = await prisma.booking.create({
       data: {

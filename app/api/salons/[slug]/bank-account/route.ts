@@ -14,10 +14,10 @@ import { prisma } from "@/lib/prisma";
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    const { slug } = params;
+    const { slug } = await params;
     const user = await getCurrentUser();
     const ipAddress = request.headers.get("x-forwarded-for") || undefined;
 
@@ -86,7 +86,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -94,7 +94,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { slug } = params;
+    const { slug } = await params;
     const { bankAccountName, bankAccountNumber, bankName } =
       await request.json();
 

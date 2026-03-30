@@ -16,7 +16,7 @@ import {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { bookingId: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -24,7 +24,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bookingId } = params;
+    const { id: bookingId } = await params;
 
     // Mark payment as submitted
     const booking = await markPaymentSubmitted(bookingId);
@@ -58,7 +58,7 @@ export async function POST(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { bookingId: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const user = await getCurrentUser();
@@ -66,7 +66,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { bookingId } = params;
+    const { id: bookingId } = await params;
     const { confirmationNotes } = await request.json();
 
     // Verify salon ownership

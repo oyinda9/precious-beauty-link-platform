@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { hashPassword } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { apiError } from "@/lib/api-utils";
+import { canAddStaff } from "@/lib/subscription-enforcement";
 
 // GET - Fetch all staff members for current user's salon
 export async function GET(request: NextRequest) {
@@ -152,6 +153,21 @@ export async function POST(request: NextRequest) {
       adminId: salonAdmin.id,
       salonId: salonAdmin.salonId,
     });
+
+    // Check subscription plan limits BEFORE creating
+    const canAdd = await canAddStaff(salonAdmin.salonId);
+    if (!canAdd.allowed) {
+      console.warn(
+        `[API] Staff creation blocked for salon ${salonAdmin.salonId}: ${canAdd.reason}`,
+      );
+      return NextResponse.json(
+        {
+          error:
+            canAdd.reason || "Cannot add staff - subscription limit reached",
+        },
+        { status: 403 },
+      );
+    }
 
     const body = await request.json();
     const { fullName, email, phone, password, specialties, hourlyRate } = body;

@@ -9,7 +9,7 @@ import { sendEmail } from "@/lib/email";
 // GET - Fetch a specific booking
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const currentUser = await getCurrentUser();
@@ -18,7 +18,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(
@@ -308,7 +308,7 @@ export async function PUT(
 // PATCH - Confirm in-person payment (PAY_AT_SALON)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const currentUser = await getCurrentUser();
@@ -317,7 +317,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     if (!id) {
       return NextResponse.json(

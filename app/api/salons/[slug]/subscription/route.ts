@@ -8,10 +8,11 @@ import { getSalonWithSubscriptionBySlug } from "@/lib/subscription";
 // GET subscription for a salon
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    const salon = await getSalonWithSubscriptionBySlug(params.slug);
+    const { slug } = await params;
+    const salon = await getSalonWithSubscriptionBySlug(slug);
 
     if (!salon) {
       return NextResponse.json({ error: "Salon not found" }, { status: 404 });
@@ -31,9 +32,10 @@ export async function GET(
 // PUT update subscription (super admin only)
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
+    const { slug } = await params;
     const token = extractToken(request.headers.get("authorization"));
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -48,7 +50,7 @@ export async function PUT(
     const { plan, status, trialEndsAt } = body;
 
     const salon = await prisma.salon.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     });
 
     if (!salon) {

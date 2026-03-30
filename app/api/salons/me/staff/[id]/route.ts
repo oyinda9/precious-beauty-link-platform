@@ -7,9 +7,12 @@ import { apiError } from "@/lib/api-utils";
 // DELETE - Remove specific staff member
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    // Await params in Next.js 15+
+    const { id } = await params;
+
     const currentUser = await getCurrentUser();
 
     if (!currentUser) {
@@ -22,8 +25,6 @@ export async function DELETE(
         { status: 403 },
       );
     }
-
-    const { id } = params;
 
     // Get salon admin's salon
     const salonAdmin = await prisma.salonAdmin.findFirst({

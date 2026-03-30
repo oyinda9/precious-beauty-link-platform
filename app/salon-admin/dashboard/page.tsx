@@ -7,7 +7,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Progress } from "@/components/ui/progress";
 import {
   CalendarDays,
   DollarSign,
@@ -16,7 +15,6 @@ import {
   Award,
   ChevronRight,
   TrendingUp,
-  UserCheck,
   Clock,
   Copy,
   ExternalLink,
@@ -28,6 +26,7 @@ import {
   Phone,
 } from "lucide-react";
 import SalonAdminLayout from "@/components/dashboard/salon-admin-layout";
+import { SubscriptionStatus } from "@/components/subscription/subscription-status";
 
 interface Booking {
   id: string;
@@ -271,7 +270,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Prominent Booking Link Card */}
+        {/* Booking Link Card - Moved to top */}
         {salon && (
           <Card className="border border-purple-200 dark:border-purple-800 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 shadow-md hover:shadow-lg transition-all">
             <CardContent className="p-3 sm:p-6">
@@ -290,7 +289,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* URL and Actions */}
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-2 sm:p-3">
                   <span className="flex-1 text-xs sm:text-sm font-mono text-purple-700 dark:text-purple-300 truncate px-2 py-1 sm:py-0 break-all sm:break-normal">
                     {typeof window !== "undefined" && salon.slug
@@ -333,7 +331,7 @@ export default function DashboardPage() {
           </Card>
         )}
 
-        {/* Stats Grid */}
+        {/* Stats Grid - 4 Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
           {[
             {
@@ -389,195 +387,205 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Recent Bookings */}
-        <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
-          <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <CalendarDays className="w-4 sm:w-5 h-4 sm:h-5 text-purple-500 flex-shrink-0" />
-                Recent Bookings
-              </CardTitle>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.push("/salon-admin/bookings")}
-                className="w-full sm:w-auto text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
-              >
-                View All <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4 ml-1" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="p-2 sm:p-6 pt-2 sm:pt-0">
-            <div className="space-y-2 sm:space-y-3">
-              {bookings.slice(0, 5).map((booking) => (
-                <div
-                  key={booking.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-900/10 dark:to-pink-900/10 rounded-lg gap-2 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all"
-                >
-                  <div className="flex items-start gap-2 sm:gap-3 min-w-0">
-                    <Avatar className="h-7 sm:h-8 w-7 sm:w-8 border-2 border-purple-200 dark:border-purple-800 flex-shrink-0">
-                      <AvatarFallback className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 text-xs">
-                        {getInitials("Guest")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
-                        Guest Client
-                      </p>
-                      <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
-                        {booking.service.name} •{" "}
-                        {new Date(booking.bookingDate).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                          },
-                        )}
-                      </p>
-                      {booking.clientPhone && (
-                        <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 mt-0.5 truncate">
-                          📞 {booking.clientPhone}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <Badge
-                    className={`${getStatusColor(booking.status)} flex items-center gap-1 w-fit px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs flex-shrink-0 ml-auto sm:ml-0`}
-                  >
-                    {getStatusIcon(booking.status)}
-                    {booking.status}
-                  </Badge>
-                </div>
-              ))}
-
-              {bookings.length === 0 && (
-                <div className="text-center py-8">
-                  <CalendarDays className="w-10 h-10 text-purple-300 mx-auto mb-2" />
-                  <p className="text-xs sm:text-sm text-slate-500">
-                    No bookings yet
-                  </p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Salon Details - Collapsible */}
-        {salon && (
+        {/* Two Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {/* Left Column - Recent Bookings */}
           <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
-            <CardHeader
-              className="p-3 sm:p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-              onClick={() => setShowSalonInfo(!showSalonInfo)}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Store className="w-4 sm:w-5 h-4 sm:h-5 text-purple-500 flex-shrink-0" />
-                  <CardTitle className="text-base sm:text-lg truncate">
-                    Salon Details
-                  </CardTitle>
-                </div>
+            <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+                  <CalendarDays className="w-4 sm:w-5 h-4 sm:h-5 text-purple-500 flex-shrink-0" />
+                  Recent Bookings
+                </CardTitle>
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="p-1 h-8 w-8 flex-shrink-0"
+                  onClick={() => router.push("/salon-admin/bookings")}
+                  className="w-full sm:w-auto text-xs sm:text-sm text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:text-purple-400 dark:hover:bg-purple-900/20"
                 >
-                  {showSalonInfo ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
+                  View All <ChevronRight className="w-3 sm:w-4 h-3 sm:h-4 ml-1" />
                 </Button>
               </div>
             </CardHeader>
-
-            {showSalonInfo && (
-              <CardContent className="p-3 sm:p-4 pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3">
-                  <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
-                    <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
-                      Salon Name
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
-                      {salon.name}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
-                    <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
-                      Location
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
-                      {salon.city}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg sm:col-span-2">
-                    <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
-                      Address
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
-                      {salon.address}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
-                    <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
-                      Email
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
-                      {salon.email}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
-                    <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
-                      Phone
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white">
-                      {salon.phone}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
-                    <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
-                      Subscription Plan
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white">
-                      {salon.subscription?.plan || "Free"}
-                    </p>
-                  </div>
-                  <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
-                    <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
-                      Booking URL Slug
-                    </p>
-                    <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white font-mono truncate">
-                      {salon.slug || "Loading..."}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Quick Actions */}
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={copyBookingLink}
-                    className="text-xs sm:text-sm gap-1 sm:gap-2"
+            <CardContent className="p-2 sm:p-6 pt-2 sm:pt-0">
+              <div className="space-y-2 sm:space-y-3">
+                {bookings.slice(0, 5).map((booking) => (
+                  <div
+                    key={booking.id}
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-2 sm:p-3 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-900/10 dark:to-pink-900/10 rounded-lg gap-2 hover:from-purple-50 hover:to-pink-50 dark:hover:from-purple-900/20 dark:hover:to-pink-900/20 transition-all"
                   >
-                    <Share2 className="w-3 sm:w-4 h-3 sm:h-4" />
-                    Share
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    asChild
-                    className="text-xs sm:text-sm gap-1 sm:gap-2"
-                  >
-                    <a href={`tel:${salon.phone}`}>
-                      <Phone className="w-3 sm:w-4 h-3 sm:h-4" />
-                      Call
-                    </a>
-                  </Button>
-                </div>
-              </CardContent>
-            )}
+                    <div className="flex items-start gap-2 sm:gap-3 min-w-0">
+                      <Avatar className="h-7 sm:h-8 w-7 sm:w-8 border-2 border-purple-200 dark:border-purple-800 flex-shrink-0">
+                        <AvatarFallback className="bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900 dark:to-pink-900 text-purple-700 dark:text-purple-300 text-xs">
+                          {getInitials("Guest")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
+                          Guest Client
+                        </p>
+                        <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">
+                          {booking.service.name} •{" "}
+                          {new Date(booking.bookingDate).toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                            },
+                          )}
+                        </p>
+                        {booking.clientPhone && (
+                          <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400 mt-0.5 truncate">
+                            📞 {booking.clientPhone}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Badge
+                      className={`${getStatusColor(booking.status)} flex items-center gap-1 w-fit px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs flex-shrink-0 ml-auto sm:ml-0`}
+                    >
+                      {getStatusIcon(booking.status)}
+                      {booking.status}
+                    </Badge>
+                  </div>
+                ))}
+
+                {bookings.length === 0 && (
+                  <div className="text-center py-8">
+                    <CalendarDays className="w-10 h-10 text-purple-300 mx-auto mb-2" />
+                    <p className="text-xs sm:text-sm text-slate-500">
+                      No bookings yet
+                    </p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
           </Card>
-        )}
+
+          {/* Right Column - Subscription & Salon Info */}
+          <div className="space-y-4 sm:space-y-6">
+            {/* Subscription Status */}
+            <SubscriptionStatus />
+
+            {/* Salon Details - Collapsible */}
+            {salon && (
+              <Card className="border-0 bg-white dark:bg-slate-800 shadow-sm">
+                <CardHeader
+                  className="p-3 sm:p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
+                  onClick={() => setShowSalonInfo(!showSalonInfo)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Store className="w-4 sm:w-5 h-4 sm:h-5 text-purple-500 flex-shrink-0" />
+                      <CardTitle className="text-base sm:text-lg truncate">
+                        Salon Details
+                      </CardTitle>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="p-1 h-8 w-8 flex-shrink-0"
+                    >
+                      {showSalonInfo ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                    </Button>
+                  </div>
+                </CardHeader>
+
+                {showSalonInfo && (
+                  <CardContent className="p-3 sm:p-4 pt-0">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 mb-3">
+                      <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
+                          Salon Name
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
+                          {salon.name}
+                        </p>
+                      </div>
+                      <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
+                          Location
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
+                          {salon.city}
+                        </p>
+                      </div>
+                      <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg sm:col-span-2">
+                        <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
+                          Address
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
+                          {salon.address}
+                        </p>
+                      </div>
+                      <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
+                          Email
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white truncate">
+                          {salon.email}
+                        </p>
+                      </div>
+                      <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
+                          Phone
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white">
+                          {salon.phone}
+                        </p>
+                      </div>
+                      <div className="p-2 sm:p-3 bg-purple-50/50 dark:bg-purple-900/10 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-purple-600 dark:text-purple-400">
+                          Subscription Plan
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white">
+                          {salon.subscription?.plan || "Free"}
+                        </p>
+                      </div>
+                      <div className="p-2 sm:p-3 bg-pink-50/50 dark:bg-pink-900/10 rounded-lg">
+                        <p className="text-[10px] sm:text-xs text-pink-600 dark:text-pink-400">
+                          Booking URL Slug
+                        </p>
+                        <p className="text-xs sm:text-sm font-medium text-slate-800 dark:text-white font-mono truncate">
+                          {salon.slug || "Loading..."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick Actions */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={copyBookingLink}
+                        className="text-xs sm:text-sm gap-1 sm:gap-2"
+                      >
+                        <Share2 className="w-3 sm:w-4 h-3 sm:h-4" />
+                        Share
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        asChild
+                        className="text-xs sm:text-sm gap-1 sm:gap-2"
+                      >
+                        <a href={`tel:${salon.phone}`}>
+                          <Phone className="w-3 sm:w-4 h-3 sm:h-4" />
+                          Call
+                        </a>
+                      </Button>
+                    </div>
+                  </CardContent>
+                )}
+              </Card>
+            )}
+          </div>
+        </div>
+ 
 
         {/* Mobile Bottom Navigation */}
         <div className="sm:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-2">

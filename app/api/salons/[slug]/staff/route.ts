@@ -8,21 +8,15 @@ import {
 } from "@/lib/auth";
 import { apiError } from "@/lib/api-utils";
 import { UserRole } from "@prisma/client";
+import { canAddStaff } from "@/lib/subscription-enforcement";
 
 // GET staff for a salon
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
-    // params can be a Promise in Next.js route handlers; unwrap if necessary
-    const resolvedParams =
-      params && typeof (params as any).then === "function"
-        ? await (params as any)
-        : params;
-    const rawSlug =
-      resolvedParams?.slug ||
-      new URL(request.url).pathname.split("/").filter(Boolean).pop();
+    const { slug: rawSlug } = await params;
     const slug = rawSlug?.toString().toLowerCase();
 
     const salon = await prisma.salon.findUnique({
@@ -62,9 +56,10 @@ export async function GET(
 // POST add staff (salon admin only)
 export async function POST(
   request: NextRequest,
-  { params }: { params: { slug: string } },
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
+    const { slug } = await params;
     const token = extractToken(request.headers.get("authorization"));
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -76,7 +71,7 @@ export async function POST(
     }
 
     const salon = await prisma.salon.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: { admins: true },
     });
 
@@ -90,6 +85,21 @@ export async function POST(
     );
     if (!isAuthorized) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Check subscription plan limits BEFORE creating
+    const canAdd = await canAddStaff(salon.id);
+    if (!canAdd.allowed) {
+      console.warn(
+        `[API] Staff creation blocked for salon ${salon.id}: ${canAdd.reason}`,
+      );
+      return NextResponse.json(
+        {
+          error:
+            canAdd.reason || "Cannot add staff - subscription limit reached",
+        },
+        { status: 403 },
+      );
     }
 
     const body = await request.json();
